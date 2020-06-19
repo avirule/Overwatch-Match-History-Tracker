@@ -53,10 +53,10 @@ namespace OverwatchMatchHistoryTracker
 
             File.Delete(string.Format(_DatabasePathFormat, args[0]));
 
-            await VerifyPrerequisiteFiles(args[0], args[1]);
+            await VerifyPrerequisiteFiles(args[0], args[1], int.Parse(args[2]), args[3], args[4]);
         }
 
-        private static async ValueTask VerifyPrerequisiteFiles(string name, string role)
+        private static async ValueTask VerifyPrerequisiteFiles(string name, string role, int sr, string map, string comment)
         {
             await using SqliteConnection connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, name)}");
             await using SqliteCommand command = connection.CreateCommand();
@@ -71,21 +71,21 @@ namespace OverwatchMatchHistoryTracker
                         CREATE TABLE {role}_history 
                             (
                                 timestamp TEXT NOT NULL,
+                                sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
                                 map TEXT NOT NULL CHECK
                                     (
-                                        {string.Join(" OR ", _ValidMaps.Select(map => $"map = \"{map}\""))}
+                                        {string.Join(" OR ", _ValidMaps.Select(validMap => $"map = \"{validMap}\""))}
                                     ),
-                                sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
                                 comment TEXT
                             )
                     ";
                 await command.ExecuteNonQueryAsync();
             }
 
-            command.CommandText = $"INSERT INTO {role}_history (timestamp, map, sr, comment) VALUES (datetime(), $map, $sr, $comment)";
-            command.Parameters.AddWithValue("$map", "Hanamura");
-            command.Parameters.AddWithValue("$sr", "2555");
-            command.Parameters.AddWithValue("$comment", "");
+            command.CommandText = $"INSERT INTO {role}_history (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
+            command.Parameters.AddWithValue("$sr", sr);
+            command.Parameters.AddWithValue("$map", map);
+            command.Parameters.AddWithValue("$comment", comment);
             await command.ExecuteNonQueryAsync();
 
             await connection.CloseAsync();
