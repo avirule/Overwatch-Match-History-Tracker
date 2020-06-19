@@ -1,5 +1,6 @@
 ﻿#region
 
+using System;
 using System.Threading.Tasks;
 
 #endregion
@@ -15,6 +16,8 @@ namespace OverwatchMatchHistoryTracker
         {
             OverwatchTracker tracker = new OverwatchTracker(args);
             await tracker.Process();
+
+            Console.WriteLine("Successfully committed match data.");
         }
     }
 }

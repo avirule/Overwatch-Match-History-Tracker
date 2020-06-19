@@ -16,7 +16,7 @@ namespace OverwatchMatchHistoryTracker
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
-            new Example("Commit match data to match history database.", new MatchInfo
+            new Example("Commit match data to match history database", new MatchInfo
             {
                 Name = "ShadowDragon",
                 Role = "DPS",

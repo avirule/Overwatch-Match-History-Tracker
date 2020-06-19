@@ -15,29 +15,36 @@ namespace OverwatchMatchHistoryTracker
 {
     public class OverwatchTracker
     {
+        private static readonly HashSet<string> _ValidRoles = new HashSet<string>
+        {
+            "tank",
+            "dps",
+            "support"
+        };
+
         private static readonly HashSet<string> _ValidMaps = new HashSet<string>
         {
-            "Blizzard World",
-            "Busan",
-            "Dorado",
-            "Eichenwalde",
-            "Hanamura",
-            "Havana",
-            "Hollywood",
-            "Horizon Lunar Colony",
-            "Ilios",
-            "Junkertown",
-            "King's Row",
-            "Lijiang Tower",
-            "Nepal",
-            "Numbani",
-            "Oasis",
-            "Paris",
-            "Rialto",
-            "Route 66",
-            "Temple of Anubis",
-            "Volskaya Industries",
-            "Watchpoint: Gibraltar",
+            "blizzard world",
+            "busan",
+            "dorado",
+            "eichenwalde",
+            "hanamura",
+            "havana",
+            "hollywood",
+            "horizon lunar colony",
+            "ilios",
+            "junkertown",
+            "king's row",
+            "lijiang tower",
+            "nepal",
+            "numbani",
+            "oasis",
+            "paris",
+            "rialto",
+            "route 66",
+            "temple of anubis",
+            "volskaya industries",
+            "watchpoint: gibraltar",
         };
 
         private static readonly string _CurrentDirectory = Environment.CurrentDirectory;
@@ -60,13 +67,15 @@ namespace OverwatchMatchHistoryTracker
 
         public async ValueTask Process()
         {
-            File.Delete(string.Format(_DatabasePathFormat, _MatchInfo.Name));
-
             try
             {
                 VerifyArguments();
                 await VerifyDatabase();
                 await CommitMatchInfo();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
             finally
             {
@@ -88,7 +97,28 @@ namespace OverwatchMatchHistoryTracker
         {
             Debug.Assert(!(_MatchInfo is null), "MatchInfo should be parsed prior to this point.");
 
-            if (!File.Exists(string.Format(_DatabasePathFormat, _MatchInfo.Name)) && !_MatchInfo.NewPlayer)
+            if (!_ValidRoles.Contains(_MatchInfo.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{_MatchInfo.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                );
+            }
+            else if (!_ValidMaps.Contains(_MatchInfo.Map))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid map provided: '{_MatchInfo.Map}'"
+                );
+            }
+            else if ((_MatchInfo.SR < 0) || (_MatchInfo.SR > 6000))
+            {
+                throw new InvalidOperationException
+                (
+                    "Provided SR value must be between 0 and 6000 (minimum and maximum as determined by Blizzard)."
+                );
+            }
+            else if (!File.Exists(string.Format(_DatabasePathFormat, _MatchInfo.Name)) && !_MatchInfo.NewPlayer)
             {
                 throw new InvalidOperationException
                 (
@@ -101,33 +131,24 @@ namespace OverwatchMatchHistoryTracker
         {
             Debug.Assert(!(_MatchInfo is null), "MatchInfo should be parsed prior to this point.");
 
-            if (_MatchInfo is null)
-            {
-                throw new NullReferenceException(nameof(_MatchInfo));
-            }
-
             _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, _MatchInfo.Name)}");
             await _Connection.OpenAsync();
             await using SqliteCommand command = _Connection.CreateCommand();
 
-            command.CommandText = $@"SELECT name FROM sqlite_master WHERE type = 'table' AND name = '{_MatchInfo.Role}_history'";
-            if (await command.ExecuteScalarAsync() == null)
-            {
-                command.CommandText =
-                    $@"
-                        CREATE TABLE IF NOT EXISTS {_MatchInfo.Role}_history 
+            command.CommandText =
+                $@"
+                    CREATE TABLE IF NOT EXISTS {_MatchInfo.Role}
+                    (
+                        timestamp TEXT NOT NULL,
+                        sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
+                        map TEXT NOT NULL CHECK
                             (
-                                timestamp TEXT NOT NULL,
-                                sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
-                                map TEXT NOT NULL CHECK
-                                    (
-                                        {string.Join(" OR ", _ValidMaps.Select(validMap => $"map = \"{validMap}\""))}
-                                    ),
-                                comment TEXT
-                            )
-                    ";
-                await command.ExecuteNonQueryAsync();
-            }
+                                {string.Join(" OR ", _ValidMaps.Select(validMap => $"map = \"{validMap}\""))}
+                            ),
+                        comment TEXT
+                    )
+                ";
+            await command.ExecuteNonQueryAsync();
         }
 
         private async ValueTask CommitMatchInfo()
@@ -137,7 +158,7 @@ namespace OverwatchMatchHistoryTracker
 
             await using SqliteCommand command = _Connection.CreateCommand();
 
-            command.CommandText = $"INSERT INTO {_MatchInfo.Role}_history (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
+            command.CommandText = $"INSERT INTO {_MatchInfo.Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
             command.Parameters.AddWithValue("$sr", _MatchInfo.SR);
             command.Parameters.AddWithValue("$map", _MatchInfo.Map);
             command.Parameters.AddWithValue("$comment", _MatchInfo.Comment);
