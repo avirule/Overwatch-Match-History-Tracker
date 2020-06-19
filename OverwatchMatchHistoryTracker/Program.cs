@@ -13,8 +13,6 @@ namespace OverwatchMatchHistoryTracker
         {
             OverwatchTracker tracker = new OverwatchTracker(args);
             await tracker.Process();
-
-            Console.WriteLine("Successfully committed match data.");
         }
     }
 }

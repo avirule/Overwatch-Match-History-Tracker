@@ -12,11 +12,12 @@ using CommandLine.Text;
 
 namespace OverwatchMatchHistoryTracker
 {
-    public class MatchInfo
+    [Verb("match", HelpText = "Commits new match data.")]
+    public class MatchOption
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
-            new Example("Commit match data to match history database", new MatchInfo
+            new Example("Commit match data to match history database", new MatchOption
             {
                 Name = "ShadowDragon",
                 Role = "DPS",
@@ -71,18 +72,18 @@ namespace OverwatchMatchHistoryTracker
             set => _Map = value.ToLowerInvariant();
         }
 
-        [Option('c', "comment", Required = false, HelpText = "Personal comments for match.")]
+        [Value(4, Required = false, HelpText = "Personal comments for match.")]
         public string Comment
         {
             get => _Comment;
             set => _Comment = value;
         }
 
-        public MatchInfo()
+        public MatchOption()
         {
             _NewPlayer = false;
             _Name = _Role = _Map = _Comment = string.Empty;
-            _SR = 0;
+            _SR = -1;
         }
     }
 }

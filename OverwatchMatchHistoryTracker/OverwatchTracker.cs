@@ -74,12 +74,21 @@ namespace OverwatchMatchHistoryTracker
         private static readonly string _DatabasePathFormat = $@"{_CurrentDirectory}/{{0}}.sqlite";
 
         private SqliteConnection? _Connection;
-        private MatchInfo? _MatchInfo;
+        private MatchOption? _MatchInfo;
 
         public OverwatchTracker(IEnumerable<string> args)
         {
-            ParserResult<MatchInfo> parserResult = Parser.Default.ParseArguments<MatchInfo>(args);
-            parserResult.WithParsed(matchInfo => _MatchInfo = matchInfo);
+            Parser.Default.ParseArguments<MatchOption, CollateOption>(args).WithParsed(obj =>
+            {
+                switch (obj)
+                {
+                    case MatchOption matchOption:
+                        _MatchInfo = matchOption;
+                        break;
+                    case CollateOption collateOption:
+                        break;
+                }
+            });
 
             if (_MatchInfo is null)
             {
@@ -96,9 +105,11 @@ namespace OverwatchMatchHistoryTracker
         {
             try
             {
-                VerifyArguments();
+                ValidateArguments();
                 await VerifyDatabase();
                 await CommitMatchInfo();
+
+                Console.WriteLine("Successfully committed match data.");
             }
             catch (Exception ex)
             {
@@ -120,11 +131,32 @@ namespace OverwatchMatchHistoryTracker
             }
         }
 
-        private void VerifyArguments()
+        private void ValidateArguments()
         {
-            Debug.Assert(!(_MatchInfo is null), "MatchInfo should be parsed prior to this point.");
+            Debug.Assert(!(_MatchInfo is null), "MatchOption should be parsed prior to this point.");
 
-            if (!_ValidRoles.Contains(_MatchInfo.Role))
+            if (string.IsNullOrEmpty(_MatchInfo.Name))
+            {
+                throw new InvalidOperationException
+                (
+                    "Must provide player name."
+                );
+            }
+            else if (string.IsNullOrEmpty(_MatchInfo.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    "Must provide role."
+                );
+            }
+            else if (_MatchInfo.SR == -1)
+            {
+                throw new InvalidOperationException
+                (
+                    "Must provide SR."
+                );
+            }
+            else if (!_ValidRoles.Contains(_MatchInfo.Role))
             {
                 throw new InvalidOperationException
                 (
@@ -156,7 +188,7 @@ namespace OverwatchMatchHistoryTracker
 
         private async ValueTask VerifyDatabase()
         {
-            Debug.Assert(!(_MatchInfo is null), "MatchInfo should be parsed prior to this point.");
+            Debug.Assert(!(_MatchInfo is null), "MatchOption should be parsed prior to this point.");
 
             _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, _MatchInfo.Name)}");
             await _Connection.OpenAsync();
@@ -181,7 +213,7 @@ namespace OverwatchMatchHistoryTracker
         private async ValueTask CommitMatchInfo()
         {
             Debug.Assert(!(_Connection is null), "Connection should be initialized prior to this point.");
-            Debug.Assert(!(_MatchInfo is null), "MatchInfo should be parsed prior to this point.");
+            Debug.Assert(!(_MatchInfo is null), "MatchOption should be parsed prior to this point.");
 
             await using SqliteCommand command = _Connection.CreateCommand();
 
