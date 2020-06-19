@@ -24,27 +24,50 @@ namespace OverwatchMatchHistoryTracker
 
         private static readonly HashSet<string> _ValidMaps = new HashSet<string>
         {
-            "blizzard world",
-            "busan",
-            "dorado",
-            "eichenwalde",
-            "hanamura",
-            "havana",
-            "hollywood",
-            "horizon lunar colony",
-            "ilios",
-            "junkertown",
-            "king's row",
-            "lijiang tower",
-            "nepal",
-            "numbani",
-            "oasis",
-            "paris",
-            "rialto",
-            "route 66",
-            "temple of anubis",
-            "volskaya industries",
-            "watchpoint: gibraltar",
+            MapNames.BLIZZARD_WORLD,
+            MapNames.BUSAN,
+            MapNames.DORADO,
+            MapNames.EICHENWALDE,
+            MapNames.HANAMURA,
+            MapNames.HAVANA,
+            MapNames.HOLLYWOOD,
+            MapNames.HORIZON_LUNAR_COLONY,
+            MapNames.ILIOS,
+            MapNames.JUNKERTOWN,
+            MapNames.KINGS_ROW,
+            MapNames.LIJIANG_TOWER,
+            MapNames.NEPAL,
+            MapNames.NUMBANI,
+            MapNames.OASIS,
+            MapNames.PARIS,
+            MapNames.RIALTO,
+            MapNames.ROUTE66,
+            MapNames.TEMPLE_OF_ANUBIS,
+            MapNames.VOLSKAYA_INDUSTRIES,
+            MapNames.WATCHPOINT_GIBRALTAR,
+        };
+
+        private static readonly IReadOnlyDictionary<string, string> _MapAliases = new Dictionary<string, string>
+        {
+            { "bw", MapNames.BLIZZARD_WORLD },
+            { "bworld", MapNames.BLIZZARD_WORLD },
+            { "hlc", MapNames.HORIZON_LUNAR_COLONY },
+            { "horizon", MapNames.HORIZON_LUNAR_COLONY },
+            { "krow", MapNames.KINGS_ROW },
+            { "kingsrow", MapNames.KINGS_ROW },
+            { "ltower", MapNames.LIJIANG_TOWER },
+            { "lt", MapNames.LIJIANG_TOWER },
+            { "lijiang", MapNames.LIJIANG_TOWER },
+            { "r66", MapNames.ROUTE66 },
+            { "route", MapNames.ROUTE66 },
+            { "toa", MapNames.TEMPLE_OF_ANUBIS },
+            { "temple", MapNames.TEMPLE_OF_ANUBIS },
+            { "anubis", MapNames.TEMPLE_OF_ANUBIS },
+            { "vi", MapNames.VOLSKAYA_INDUSTRIES },
+            { "volskaya", MapNames.VOLSKAYA_INDUSTRIES },
+            { "wg", MapNames.WATCHPOINT_GIBRALTAR },
+            { "watchpoint", MapNames.WATCHPOINT_GIBRALTAR },
+            { "gibraltar", MapNames.WATCHPOINT_GIBRALTAR },
         };
 
         private static readonly string _CurrentDirectory = Environment.CurrentDirectory;
@@ -62,6 +85,10 @@ namespace OverwatchMatchHistoryTracker
             {
                 // parser should have printed an error
                 Environment.Exit(-1);
+            }
+            else if (!string.IsNullOrEmpty(_MatchInfo.Map) && _MapAliases.ContainsKey(_MatchInfo.Map))
+            {
+                _MatchInfo.Map = _MapAliases[_MatchInfo.Map];
             }
         }
 

@@ -26,6 +26,7 @@ namespace OverwatchMatchHistoryTracker
             })
         };
 
+        private bool _NewPlayer;
         private string _Name;
         private string _Role;
         private string _Map;
@@ -36,47 +37,52 @@ namespace OverwatchMatchHistoryTracker
         public static IEnumerable<Example> Examples => _Examples;
 
         [Option('n', "new", Required = false, HelpText = "Used to create new player match history database.")]
-        public bool NewPlayer { get; set; }
+        public bool NewPlayer
+        {
+            get => _NewPlayer;
+            set => _NewPlayer = value;
+        }
 
         [Value(0, HelpText = "Name of player to log match info for.")]
         public string Name
         {
             get => _Name;
-            private set => _Name = value.ToLowerInvariant();
+            set => _Name = value.ToLowerInvariant();
         }
 
         [Value(1, HelpText = "Role player queued as for match.")]
         public string Role
         {
             get => _Role;
-            private set => _Role = value.ToLowerInvariant();
+            set => _Role = value.ToLowerInvariant();
         }
 
         [Value(2, HelpText = "Final SR after match ended.")]
         public int SR
         {
             get => _SR;
-            private set => _SR = value;
+            set => _SR = value;
         }
 
         [Value(3, HelpText = "Name of map match took place on.")]
         public string Map
         {
             get => _Map;
-            private set => _Map = value.ToLowerInvariant();
+            set => _Map = value.ToLowerInvariant();
         }
 
         [Option('c', "comment", Required = false, HelpText = "Personal comments for match.")]
         public string Comment
         {
             get => _Comment;
-            private set => _Comment = value;
+            set => _Comment = value;
         }
 
         public MatchInfo()
         {
+            _NewPlayer = false;
             _Name = _Role = _Map = _Comment = string.Empty;
-            SR = -1;
+            _SR = 0;
         }
     }
 }
