@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,10 +10,17 @@ using Microsoft.Data.Sqlite;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker
+namespace OverwatchMatchHistoryTracker.Options
 {
     public class OverwatchTracker
     {
+        private static readonly Type[] _OptionTypes =
+        {
+            typeof(MatchOption),
+            typeof(AverageOption),
+            typeof(DisplayOption)
+        };
+
         private static readonly HashSet<string> _ValidRoles = new HashSet<string>
         {
             "tank",
@@ -31,20 +37,16 @@ namespace OverwatchMatchHistoryTracker
         {
             try
             {
-                Parser.Default.ParseArguments<MatchOption, CollateOption, DisplayOption>(args).WithParsed(async obj =>
+
+                Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(async parsed =>
                 {
-                    switch (obj)
+                    switch (parsed)
                     {
                         case MatchOption matchOption:
-                            if (!string.IsNullOrEmpty(matchOption.Map) && MapsHelper.Aliases.ContainsKey(matchOption.Map))
-                            {
-                                matchOption.Map = MapsHelper.Aliases[matchOption.Map];
-                            }
-
                             await ProcessMatchOption(matchOption);
                             break;
-                        case CollateOption collateOption:
-                            await ProcessCollateOption(collateOption);
+                        case AverageOption averageOption:
+                            await ProcessAverageOption(averageOption);
                             break;
                         case DisplayOption displayOption:
                             await ProcessDisplayOption(displayOption);
@@ -78,41 +80,11 @@ namespace OverwatchMatchHistoryTracker
 
         private async ValueTask ProcessMatchOption(MatchOption matchOption)
         {
-            if (!string.IsNullOrEmpty(matchOption.Map) && MapsHelper.Aliases.ContainsKey(matchOption.Map))
-            {
-                matchOption.Map = MapsHelper.Aliases[matchOption.Map];
-            }
-
-            ValidateArguments(matchOption);
-            await VerifyDatabase(matchOption);
-            await CommitMatchInfo(matchOption);
-
-            Console.WriteLine("Successfully committed match data.");
-        }
-
-        private static void ValidateArguments(MatchOption matchOption)
-        {
-            Debug.Assert(!(matchOption is null), "MatchOption should be parsed prior to this point.");
-
             if (!_ValidRoles.Contains(matchOption.Role))
             {
                 throw new InvalidOperationException
                 (
                     $"Invalid role provided: '{matchOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
-                );
-            }
-            else if (!MapsHelper.Valid.Contains(matchOption.Map))
-            {
-                throw new InvalidOperationException
-                (
-                    $"Invalid map provided: '{matchOption.Map}'"
-                );
-            }
-            else if ((matchOption.SR < 0) || (matchOption.SR > 6000))
-            {
-                throw new InvalidOperationException
-                (
-                    "Provided SR value must be between 0 and 6000 (minimum and maximum as determined by Blizzard)."
                 );
             }
             else if (!File.Exists(string.Format(_DatabasePathFormat, matchOption.Name)) && !matchOption.NewPlayer)
@@ -122,16 +94,8 @@ namespace OverwatchMatchHistoryTracker
                     $"No match history database has been created for player '{matchOption.Name}'. Use the '-n' flag to create it instead of throwing an error."
                 );
             }
-        }
 
-        private async ValueTask VerifyDatabase(MatchOption matchOption)
-        {
-            Debug.Assert(!(matchOption is null), "MatchOption should be parsed prior to this point.");
-
-            _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, matchOption.Name)}");
-            await _Connection.OpenAsync();
-            await using SqliteCommand command = _Connection.CreateCommand();
-
+            SqliteCommand command = await GetCommand(matchOption.Name);
             command.CommandText =
                 $@"
                     CREATE TABLE IF NOT EXISTS {matchOption.Role}
@@ -146,57 +110,58 @@ namespace OverwatchMatchHistoryTracker
                     )
                 ";
             await command.ExecuteNonQueryAsync();
-        }
 
-        private async ValueTask CommitMatchInfo(MatchOption matchOption)
-        {
-            Debug.Assert(!(_Connection is null), "Connection should be initialized prior to this point.");
-            Debug.Assert(!(matchOption is null), "MatchOption should be parsed prior to this point.");
-
-            await using SqliteCommand command = _Connection.CreateCommand();
+            if (MapsHelper.Aliases.ContainsKey(matchOption.Map))
+            {
+                matchOption.Map = MapsHelper.Aliases[matchOption.Map];
+            }
 
             command.CommandText = $"INSERT INTO {matchOption.Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
             command.Parameters.AddWithValue("$sr", matchOption.SR);
             command.Parameters.AddWithValue("$map", matchOption.Map);
             command.Parameters.AddWithValue("$comment", matchOption.Comment);
             await command.ExecuteNonQueryAsync();
+
+            Console.WriteLine("Successfully committed match data.");
         }
 
         #endregion
 
-        #region CollateOption
+        #region AverageOption
 
-        private async ValueTask ProcessCollateOption(CollateOption collateOption)
+        private async ValueTask ProcessAverageOption(AverageOption averageOption)
         {
-            switch (collateOption.Operation)
+            if (averageOption.Change)
             {
-                case "average":
-                    await CollateAverage(collateOption.Name, collateOption.Role, collateOption.Outcome);
-                    break;
-                case "averagec":
-                    await CollateAverageChange(collateOption.Name, collateOption.Role, collateOption.Outcome);
-                    break;
+                await DisplayAverageChange(averageOption.Name, averageOption.Role, averageOption.Outcome);
+            }
+            else
+            {
+                await DisplayAverageSR(averageOption.Name, averageOption.Role, averageOption.Outcome);
             }
         }
 
-        private async ValueTask CollateAverage(string name, string role, string outcome)
+        private async ValueTask DisplayAverageSR(string name, string role, string outcome)
         {
             List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
 
-            for (int sr = orderedSRs[0], index = 1; index < orderedSRs.Count; index++, sr = orderedSRs[index])
+            if (orderedSRs.Count > 0)
             {
-                int srChange = orderedSRs[index] - sr;
-
-                switch (outcome.ToLowerInvariant())
+                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 1; index > 0; index--, sr = orderedSRs[index])
                 {
-                    case "win" when srChange > 0:
-                    case "loss" when srChange < 0:
-                    case "draw" when srChange == 0:
-                        // don't drop values that are valid for outcome
-                        break;
-                    default:
-                        orderedSRs.RemoveAt(index);
-                        break;
+                    int srChange = sr - orderedSRs[index];
+
+                    switch (outcome)
+                    {
+                        case "win" when srChange > 0:
+                        case "loss" when srChange < 0:
+                        case "draw" when srChange == 0:
+                            // don't drop values that are valid for outcome
+                            break;
+                        default:
+                            orderedSRs.RemoveAt(index);
+                            break;
+                    }
                 }
             }
 
@@ -205,7 +170,7 @@ namespace OverwatchMatchHistoryTracker
                 : $"Average historic SR for outcome '{outcome}': {orderedSRs.Average():0}");
         }
 
-        private async ValueTask CollateAverageChange(string name, string role, string outcome)
+        private async ValueTask DisplayAverageChange(string name, string role, string outcome)
         {
             List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
             List<int> outcomeSRChanges = new List<int>();
@@ -233,11 +198,28 @@ namespace OverwatchMatchHistoryTracker
                 : $"Average historic SR change for outcome '{outcome}': {outcomeSRChanges.Average():0}");
         }
 
+        #endregion
+
+
+        private async ValueTask CollatePeak(string name, string role)
+        {
+            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
+
+            Console.WriteLine(orderedSRs.Count == 0 ? "No historic SR data." : $"Peak historic SR: {orderedSRs.Max()}");
+        }
+
+        private async ValueTask CollateValley(string name, string role)
+        {
+            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
+
+            Console.WriteLine(orderedSRs.Count == 0 ? "No historic SR data." : $"Valley historic SR: {orderedSRs.Min()}");
+        }
+
+        #region DisplayOption
+
         private async ValueTask ProcessDisplayOption(DisplayOption displayOption)
         {
-            _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, displayOption.Name)}");
-            await _Connection.OpenAsync();
-            await using SqliteCommand command = _Connection.CreateCommand();
+            SqliteCommand command = await GetCommand(displayOption.Name);
             command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
@@ -262,20 +244,34 @@ namespace OverwatchMatchHistoryTracker
                 {
                     int change = sr - lastSR;
 
-                    string changeString = change > 0 ? $"+{change}" : change.ToString();
-                    DisplayOption.Display(timestamp, sr.ToString(), changeString, map, comment);
-                    lastSR = sr;
+                    switch (displayOption.Outcome)
+                    {
+                        case "win" when change > 0:
+                        case "loss" when change < 0:
+                        case "draw" when change == 0:
+                        case "overall":
+                            string changeString = change > 0 ? $"+{change}" : change.ToString(); // add positive-sign to wins
+                            DisplayOption.Display(timestamp, sr.ToString(), changeString, map, comment);
+                            lastSR = sr;
+                            break;
+                    }
                 }
             }
         }
 
         #endregion
 
-        private async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
+        private async ValueTask<SqliteCommand> GetCommand(string name)
         {
             _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, name)}");
             await _Connection.OpenAsync();
             await using SqliteCommand command = _Connection.CreateCommand();
+            return command;
+        }
+
+        private async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
+        {
+            SqliteCommand command = await GetCommand(name);
             command.CommandText = $"SELECT sr FROM {role} ORDER BY datetime(timestamp)";
 
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();

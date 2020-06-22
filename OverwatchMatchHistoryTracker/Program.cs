@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Threading.Tasks;
+using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
