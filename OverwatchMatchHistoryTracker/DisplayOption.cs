@@ -25,7 +25,12 @@ namespace OverwatchMatchHistoryTracker
 
         public static void Display(string timestamp, string sr, string change, string map, string comment)
         {
-            Console.WriteLine(DISPLAY_FORMAT, timestamp.PadRight(19), sr.PadRight(4), change.PadLeft(4).PadRight(6), map.PadRight(25), comment);
+            Console.WriteLine(DISPLAY_FORMAT,
+                timestamp.PadLeft(10 + (timestamp.Length / 2)).PadRight(19),
+                sr.PadLeft(2).PadRight(4),
+                change.PadLeft(4).PadRight(6),
+                map.PadLeft(13 + (map.Length / 2)).PadRight(25),
+                comment);
         }
 
         private string _Name;
