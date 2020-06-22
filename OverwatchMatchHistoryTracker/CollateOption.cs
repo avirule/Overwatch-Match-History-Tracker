@@ -42,21 +42,22 @@ namespace OverwatchMatchHistoryTracker
             set => _Operation = value.ToLowerInvariant();
         }
 
-        [Value(1, Required = true, HelpText = "Name of player to collate data from.")]
+        [Value(1, MetaName = nameof(Name), Required = true, HelpText = "Name of player to collate data from.")]
         public string Name
         {
             get => _Name;
             set => _Name = value.ToLowerInvariant();
         }
 
-        [Value(2, Required = true, HelpText = "Role for which to collate data from.")]
+        [Value(2, MetaName = nameof(Role), Required = true, HelpText = "Role for which to collate data from.")]
         public string Role
         {
             get => _Role;
             set => _Role = value.ToLowerInvariant();
         }
 
-        [Value(3, Required = false, HelpText = "Constrains the collation to only matches with given outcome (win / loss / draw).", Default = "overall")]
+        [Value(3, MetaName = nameof(Outcome), Required = false,
+            HelpText = "Constrains the collation to only matches with given outcome (win / loss / draw).", Default = "overall")]
         public string Outcome
         {
             get => _Outcome;

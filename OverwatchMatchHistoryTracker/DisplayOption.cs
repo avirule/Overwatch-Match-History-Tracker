@@ -34,14 +34,14 @@ namespace OverwatchMatchHistoryTracker
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
 
-        [Value(1, Required = true, HelpText = "Name of player to display data from.")]
+        [Value(1, MetaName = nameof(Name), Required = true, HelpText = "Name of player to display data from.")]
         public string Name
         {
             get => _Name;
             set => _Name = value.ToLowerInvariant();
         }
 
-        [Value(2, Required = true, HelpText = "Role for which to display data from.")]
+        [Value(2, MetaName = nameof(Role), Required = true, HelpText = "Role for which to display data from.")]
         public string Role
         {
             get => _Role;
