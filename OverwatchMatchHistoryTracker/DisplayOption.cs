@@ -12,7 +12,7 @@ namespace OverwatchMatchHistoryTracker
     [Verb("display", HelpText = "Display tabulated match history data.")]
     public class DisplayOption
     {
-        public const string DISPLAY_FORMAT = " {0} | {1} | {2} | {3} ";
+        public const string DISPLAY_FORMAT = " {0} | {1} | {2} | {3} | {4} ";
 
         private static readonly List<Example> _Examples = new List<Example>
         {
@@ -23,9 +23,9 @@ namespace OverwatchMatchHistoryTracker
             }),
         };
 
-        public static void Display(string timestamp, string sr, string map, string comment)
+        public static void Display(string timestamp, string sr, string change, string map, string comment)
         {
-            Console.WriteLine(DISPLAY_FORMAT, timestamp.PadRight(19), sr.PadRight(4), map.PadRight(25), comment);
+            Console.WriteLine(DISPLAY_FORMAT, timestamp.PadRight(19), sr.PadRight(4), change.PadLeft(4).PadRight(6), map.PadRight(25), comment);
         }
 
         private string _Name;

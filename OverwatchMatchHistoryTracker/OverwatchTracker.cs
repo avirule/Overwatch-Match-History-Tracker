@@ -240,11 +240,12 @@ namespace OverwatchMatchHistoryTracker
             await using SqliteCommand command = _Connection.CreateCommand();
             command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
 
-            List<(string, int, string, string)> historicData = new List<(string, int, string, string)>();
+            List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2), reader.IsDBNull(3) ? "n/a" : reader.GetString(3)));
+                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
+                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)));
             }
 
             if (historicData.Count == 0)
@@ -253,12 +254,17 @@ namespace OverwatchMatchHistoryTracker
             }
             else
             {
-                DisplayOption.Display("timestamp", "sr", "map", "comment");
-                Console.WriteLine($" {new string('-', 64)}");
+                DisplayOption.Display("timestamp", "sr", "change", "map", "comment");
+                Console.WriteLine($" {new string('-', 73)}");
 
+                int lastSR = historicData[0].SR;
                 foreach ((string timestamp, int sr, string map, string comment) in historicData)
                 {
-                    DisplayOption.Display(timestamp, sr.ToString(), map, comment);
+                    int change = sr - lastSR;
+
+                    string changeString = change > 0 ? $"+{change}" : change.ToString();
+                    DisplayOption.Display(timestamp, sr.ToString(), changeString, map, comment);
+                    lastSR = sr;
                 }
             }
         }
