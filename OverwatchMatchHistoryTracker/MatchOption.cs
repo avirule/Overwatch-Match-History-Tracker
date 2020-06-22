@@ -44,28 +44,28 @@ namespace OverwatchMatchHistoryTracker
             set => _NewPlayer = value;
         }
 
-        [Value(0, HelpText = "Name of player to log match info for.")]
+        [Value(0, Required = true, HelpText = "Name of player to log match info for.")]
         public string Name
         {
             get => _Name;
             set => _Name = value.ToLowerInvariant();
         }
 
-        [Value(1, HelpText = "Role player queued as for match.")]
+        [Value(1, Required = true, HelpText = "Role player queued as for match.")]
         public string Role
         {
             get => _Role;
             set => _Role = value.ToLowerInvariant();
         }
 
-        [Value(2, HelpText = "Final SR after match ended.")]
+        [Value(2, Required = true, HelpText = "Final SR after match ended.")]
         public int SR
         {
             get => _SR;
             set => _SR = value;
         }
 
-        [Value(3, HelpText = "Name of map match took place on.")]
+        [Value(3, Required = true, HelpText = "Name of map match took place on.")]
         public string Map
         {
             get => _Map;
