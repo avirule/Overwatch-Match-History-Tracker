@@ -31,7 +31,7 @@ namespace OverwatchMatchHistoryTracker
         {
             try
             {
-                Parser.Default.ParseArguments<MatchOption, CollateOption>(args).WithParsed(async obj =>
+                Parser.Default.ParseArguments<MatchOption, CollateOption, DisplayOption>(args).WithParsed(async obj =>
                 {
                     switch (obj)
                     {
@@ -45,6 +45,9 @@ namespace OverwatchMatchHistoryTracker
                             break;
                         case CollateOption collateOption:
                             await ProcessCollateOption(collateOption);
+                            break;
+                        case DisplayOption displayOption:
+                            await ProcessDisplayOption(displayOption);
                             break;
                         default:
                             throw new InvalidOperationException("Did not recognize given arguments.");
@@ -178,17 +181,7 @@ namespace OverwatchMatchHistoryTracker
 
         private async ValueTask CollateAverage(string name, string role, string outcome)
         {
-            _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, name)}");
-            await _Connection.OpenAsync();
-            await using SqliteCommand command = _Connection.CreateCommand();
-            command.CommandText = $"SELECT sr FROM {role} ORDER BY datetime(timestamp)";
-
-            List<int> orderedSRs = new List<int>();
-            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                orderedSRs.Add(reader.GetInt32(0));
-            }
+            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
 
             for (int sr = orderedSRs[0], index = 1; index < orderedSRs.Count; index++, sr = orderedSRs[index])
             {
@@ -197,7 +190,7 @@ namespace OverwatchMatchHistoryTracker
                 switch (outcome.ToLowerInvariant())
                 {
                     case "win" when srChange > 0:
-                    case "loss" when srChange > 0:
+                    case "loss" when srChange < 0:
                     case "draw" when srChange == 0:
                         // don't drop values that are valid for outcome
                         break;
@@ -214,39 +207,76 @@ namespace OverwatchMatchHistoryTracker
 
         private async ValueTask CollateAverageChange(string name, string role, string outcome)
         {
+            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
+            List<int> outcomeSRChanges = new List<int>();
+
+            if (orderedSRs.Count > 0)
+            {
+                for (int sr = orderedSRs[0], index = 1; index < orderedSRs.Count; sr = orderedSRs[index], index++)
+                {
+                    int srChange = orderedSRs[index] - sr;
+
+                    switch (outcome.ToLowerInvariant())
+                    {
+                        case "win" when srChange > 0:
+                        case "loss" when srChange < 0:
+                        case "draw" when srChange == 0:
+                        case "overall" when srChange != 0:
+                            outcomeSRChanges.Add(Math.Abs(srChange));
+                            break;
+                    }
+                }
+            }
+
+            Console.WriteLine(outcomeSRChanges.Count == 0
+                ? $"No historic SR change data for outcome '{outcome}'."
+                : $"Average historic SR change for outcome '{outcome}': {outcomeSRChanges.Average():0}");
+        }
+
+        private async ValueTask ProcessDisplayOption(DisplayOption displayOption)
+        {
+            _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, displayOption.Name)}");
+            await _Connection.OpenAsync();
+            await using SqliteCommand command = _Connection.CreateCommand();
+            command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
+
+            List<(string, int, string, string)> historicData = new List<(string, int, string, string)>();
+            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2), reader.IsDBNull(3) ? "n/a" : reader.GetString(3)));
+            }
+
+            if (historicData.Count == 0)
+            {
+                Console.WriteLine("No historic match data to display.");
+            }
+            else
+            {
+                DisplayOption.Display("timestamp", "sr", "map", "comment");
+                Console.WriteLine($" {new string('-', 64)}");
+
+                foreach ((string timestamp, int sr, string map, string comment) in historicData)
+                {
+                    DisplayOption.Display(timestamp, sr.ToString(), map, comment);
+                }
+            }
+        }
+
+        #endregion
+
+        private async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
+        {
             _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, name)}");
             await _Connection.OpenAsync();
             await using SqliteCommand command = _Connection.CreateCommand();
             command.CommandText = $"SELECT sr FROM {role} ORDER BY datetime(timestamp)";
 
-            List<int> orderedSRs = new List<int>();
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                orderedSRs.Add(reader.GetInt32(0));
+                yield return reader.GetInt32(0);
             }
-
-            List<int> outcomeSRChanges = new List<int>();
-            for (int sr = orderedSRs[0], index = 1; index < orderedSRs.Count; index++, sr = orderedSRs[index])
-            {
-                int srChange = orderedSRs[index] - sr;
-
-                switch (outcome.ToLowerInvariant())
-                {
-                    case "win" when srChange > 0:
-                    case "loss" when srChange > 0:
-                    case "draw" when srChange == 0:
-                    case "overall" when srChange != 0:
-                        outcomeSRChanges.Add(Math.Abs(srChange));
-                        break;
-                }
-            }
-
-            Console.WriteLine(orderedSRs.Count == 0
-                ? $"No historic SR change data for outcome '{outcome}'."
-                : $"Average historic SR change for outcome '{outcome}': {outcomeSRChanges.Average():0}");
         }
-
-        #endregion
     }
 }

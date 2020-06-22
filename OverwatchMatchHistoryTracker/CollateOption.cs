@@ -13,28 +13,27 @@ namespace OverwatchMatchHistoryTracker
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
-            new Example("Commit match data to match history database", new CollateOption()
+            new Example("Get average historic SR", new CollateOption
             {
+                Operation = "average",
+                Name = "ShadowDragon",
+                Role = "DPS"
+            }),
+            new Example("Get average historic SR change", new CollateOption
+            {
+                Operation = "averagec",
                 Name = "ShadowDragon",
                 Role = "DPS"
             })
         };
 
-        private string _Outcome;
         private string _Operation;
         private string _Name;
         private string _Role;
+        private string _Outcome;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
-
-        [Option('o', "outcome", Required = false, HelpText = "Constrains the collation to only matches with given outcome (win / loss / draw).",
-            Default = "overall")]
-        public string Outcome
-        {
-            get => _Outcome;
-            set => _Outcome = value.ToLowerInvariant();
-        }
 
         [Value(0, Required = true, HelpText = "Collation operation to run.")]
         public string Operation
@@ -55,6 +54,13 @@ namespace OverwatchMatchHistoryTracker
         {
             get => _Role;
             set => _Role = value.ToLowerInvariant();
+        }
+
+        [Value(3, Required = false, HelpText = "Constrains the collation to only matches with given outcome (win / loss / draw).", Default = "overall")]
+        public string Outcome
+        {
+            get => _Outcome;
+            set => _Outcome = value.ToLowerInvariant();
         }
 
         public CollateOption() => _Role = _Outcome = _Operation = _Name = string.Empty;
