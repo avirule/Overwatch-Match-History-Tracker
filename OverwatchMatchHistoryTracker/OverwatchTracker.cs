@@ -273,27 +273,22 @@ namespace OverwatchMatchHistoryTracker
             worksheet.Cell("B2").Value = "timestamp";
             worksheet.Cell("B2").Style.Font.Bold = true;
             worksheet.Column("B").Width = 20;
-            worksheet.Column("B").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             worksheet.Cell("C2").Value = "sr";
             worksheet.Cell("C2").Style.Font.Bold = true;
             worksheet.Column("C").Width = 5;
-            worksheet.Column("C").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             worksheet.Cell("D2").Value = "change";
             worksheet.Cell("D2").Style.Font.Bold = true;
             worksheet.Column("D").Width = 7;
-            worksheet.Column("D").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             worksheet.Cell("E2").Value = "map";
             worksheet.Cell("E2").Style.Font.Bold = true;
             worksheet.Column("E").Width = 26;
-            worksheet.Column("E").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             worksheet.Cell("F2").Value = "comment";
             worksheet.Cell("F2").Style.Font.Bold = true;
             worksheet.Column("F").Width = 150;
-            worksheet.Column("F").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
 
             // data
             for (int index = 0; index < historicData.Count; index++)
@@ -316,6 +311,12 @@ namespace OverwatchMatchHistoryTracker
                 worksheet.Cell($"E{index + 3}").Value = map;
                 worksheet.Cell($"F{index + 3}").Value = comment;
             }
+
+            worksheet.Column("B").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            worksheet.Column("C").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            worksheet.Column("D").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            worksheet.Column("E").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            worksheet.Column("F").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
 
             return workbook;
         }
