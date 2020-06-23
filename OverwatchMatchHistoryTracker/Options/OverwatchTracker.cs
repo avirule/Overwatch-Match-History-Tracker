@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,23 +37,28 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             try
             {
-                Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(async parsed =>
+                object? parsed = null;
+                Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
+
+                if (parsed is null)
                 {
-                    switch (parsed)
-                    {
-                        case MatchOption matchOption:
-                            await ProcessMatchOption(matchOption);
-                            break;
-                        case AverageOption averageOption:
-                            await ProcessAverageOption(averageOption);
-                            break;
-                        case DisplayOption displayOption:
-                            await ProcessDisplayOption(displayOption);
-                            break;
-                        default:
-                            throw new InvalidOperationException("Did not recognize given arguments.");
-                    }
-                });
+                    throw new NullReferenceException(nameof(parsed));
+                }
+
+                switch (parsed)
+                {
+                    case MatchOption matchOption:
+                        await ProcessMatchOption(matchOption);
+                        break;
+                    case AverageOption averageOption:
+                        await ProcessAverageOption(averageOption);
+                        break;
+                    case DisplayOption displayOption:
+                        await ProcessDisplayOption(displayOption);
+                        break;
+                    default:
+                        throw new InvalidOperationException("Did not recognize given arguments.");
+                }
             }
             catch (Exception ex)
             {
@@ -62,7 +68,7 @@ namespace OverwatchMatchHistoryTracker.Options
             {
                 async ValueTask StatefulClose()
                 {
-                    if (_Connection is null)
+                    if (_Connection is null || (_Connection.State == ConnectionState.Closed))
                     {
                         return;
                     }

@@ -1,4 +1,6 @@
-﻿#region
+﻿#define UNIT_TEST
+
+#region
 
 using System;
 using System.Collections.Generic;
@@ -12,8 +14,6 @@ namespace OverwatchMatchHistoryTracker
 {
     internal class Program
     {
-        #define UNIT_TEST
-
         private static async Task Main(string[] args)
         {
             OverwatchTracker tracker = new OverwatchTracker();
@@ -28,7 +28,7 @@ namespace OverwatchMatchHistoryTracker
 #endif
         }
 
-#if DEBUG
+#if DEBUG && UNIT_TEST
 
         private static readonly Dictionary<Type, string[][]> _UnitTestArgs = new Dictionary<Type, string[][]>
         {
