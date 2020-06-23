@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,11 +22,7 @@ namespace OverwatchMatchHistoryTracker
             typeof(DisplayOption)
         };
 
-        private static readonly string _DatabasePathFormat = $@"{Environment.CurrentDirectory}/{{0}}.sqlite";
-
-        private SqliteConnection? _Connection;
-
-        public async ValueTask Process(IEnumerable<string> args)
+        public static async ValueTask Process(IEnumerable<string> args)
         {
             try
             {
@@ -58,25 +53,11 @@ namespace OverwatchMatchHistoryTracker
             {
                 Console.WriteLine(ex.Message);
             }
-            finally
-            {
-                async ValueTask StatefulClose()
-                {
-                    if (_Connection is null || (_Connection.State == ConnectionState.Closed))
-                    {
-                        return;
-                    }
-
-                    await _Connection.CloseAsync();
-                }
-
-                await StatefulClose();
-            }
         }
 
         #region MatchOption
 
-        private async ValueTask ProcessMatchOption(MatchOption matchOption)
+        private static async ValueTask ProcessMatchOption(MatchOption matchOption)
         {
             if (!RolesHelper.ValidRoles.Contains(matchOption.Role))
             {
@@ -85,15 +66,8 @@ namespace OverwatchMatchHistoryTracker
                     $"Invalid role provided: '{matchOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
                 );
             }
-            else if (!File.Exists(string.Format(_DatabasePathFormat, matchOption.Name)) && !matchOption.NewPlayer)
-            {
-                throw new InvalidOperationException
-                (
-                    $"No match history database has been created for player '{matchOption.Name}'. Use the '-n' flag to create it instead of throwing an error."
-                );
-            }
 
-            SqliteCommand command = await GetCommand(matchOption.Name);
+            SqliteCommand command = await GetCommand(matchOption.Name, matchOption.NewPlayer);
             command.CommandText =
                 $@"
                     CREATE TABLE IF NOT EXISTS {matchOption.Role}
@@ -127,7 +101,7 @@ namespace OverwatchMatchHistoryTracker
 
         #region AverageOption
 
-        private async ValueTask ProcessAverageOption(AverageOption averageOption)
+        private static async ValueTask ProcessAverageOption(AverageOption averageOption)
         {
             if (!RolesHelper.ValidRoles.Contains(averageOption.Role))
             {
@@ -146,7 +120,7 @@ namespace OverwatchMatchHistoryTracker
                 : $"Average historic SR for outcome '{averageOption.Outcome}': {average:0}");
         }
 
-        private async IAsyncEnumerable<int> GetMatchSRs(string name, string role, string outcome)
+        private static async IAsyncEnumerable<int> GetMatchSRs(string name, string role, string outcome)
         {
             Stack<int> orderedSRs = new Stack<int>(await GetOrderedSRs(name, role).ToListAsync());
 
@@ -166,7 +140,7 @@ namespace OverwatchMatchHistoryTracker
             }
         }
 
-        private async IAsyncEnumerable<int> GetMatchSRChanges(string name, string role, string outcome)
+        private static async IAsyncEnumerable<int> GetMatchSRChanges(string name, string role, string outcome)
         {
             Stack<int> orderedSRs = new Stack<int>(await GetOrderedSRs(name, role).ToListAsync());
 
@@ -198,7 +172,7 @@ namespace OverwatchMatchHistoryTracker
 
         #region DisplayOption
 
-        private async ValueTask ProcessDisplayOption(DisplayOption displayOption)
+        private static async ValueTask ProcessDisplayOption(DisplayOption displayOption)
         {
             if (!RolesHelper.ValidRoles.Contains(displayOption.Role))
             {
@@ -208,7 +182,7 @@ namespace OverwatchMatchHistoryTracker
                 );
             }
 
-            SqliteCommand command = await GetCommand(displayOption.Name);
+            SqliteCommand command = await GetCommand(displayOption.Name, false);
             command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
@@ -252,17 +226,29 @@ namespace OverwatchMatchHistoryTracker
 
         #endregion
 
-        private async ValueTask<SqliteCommand> GetCommand(string name)
+        #region Database
+
+        private static async ValueTask<SqliteCommand> GetCommand(string name, bool newPlayer)
         {
-            _Connection = new SqliteConnection($"Data Source={string.Format(_DatabasePathFormat, name)}");
-            await _Connection.OpenAsync();
-            await using SqliteCommand command = _Connection.CreateCommand();
+            string databasePath = $@"{Environment.CurrentDirectory}/{name}.sqlite";
+
+            if (!File.Exists(databasePath) && !newPlayer)
+            {
+                throw new InvalidOperationException
+                (
+                    $"No match history database has been created for player '{name}'. Use the '-n' flag to create it instead of throwing an error."
+                );
+            }
+
+            SqliteConnection connection = new SqliteConnection($"Data Source={databasePath}");
+            await connection.OpenAsync();
+            await using SqliteCommand command = connection.CreateCommand();
             return command;
         }
 
-        private async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
+        private static async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
         {
-            SqliteCommand command = await GetCommand(name);
+            SqliteCommand command = await GetCommand(name, false);
             command.CommandText = $"SELECT sr FROM {role} ORDER BY datetime(timestamp)";
 
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();
@@ -271,5 +257,7 @@ namespace OverwatchMatchHistoryTracker
                 yield return reader.GetInt32(0);
             }
         }
+
+        #endregion
     }
 }

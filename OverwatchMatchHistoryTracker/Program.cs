@@ -21,7 +21,7 @@ namespace OverwatchMatchHistoryTracker
 #if DEBUG && UNIT_TEST
             foreach (string[] unitTestArgs in _UnitTestArgs.Values.SelectMany(unitTestArgsCollection => unitTestArgsCollection))
             {
-                await tracker.Process(unitTestArgs);
+                await OverwatchTracker.Process(unitTestArgs);
             }
 #else
             await tracker.Process(args);
@@ -110,7 +110,6 @@ namespace OverwatchMatchHistoryTracker
                         "support",
                         "win"
                     },
-
                     new[]
                     {
                         "display",
