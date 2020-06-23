@@ -22,12 +22,6 @@ namespace OverwatchMatchHistoryTracker.Options
             typeof(DisplayOption)
         };
 
-        private static readonly HashSet<string> _ValidRoles = new HashSet<string>
-        {
-            "tank",
-            "dps",
-            "support"
-        };
 
         private static readonly string _DatabasePathFormat = $@"{Environment.CurrentDirectory}/{{0}}.sqlite";
 
@@ -84,7 +78,7 @@ namespace OverwatchMatchHistoryTracker.Options
 
         private async ValueTask ProcessMatchOption(MatchOption matchOption)
         {
-            if (!_ValidRoles.Contains(matchOption.Role))
+            if (!RolesHelper.ValidRoles.Contains(matchOption.Role))
             {
                 throw new InvalidOperationException
                 (
@@ -135,6 +129,14 @@ namespace OverwatchMatchHistoryTracker.Options
 
         private async ValueTask ProcessAverageOption(AverageOption averageOption)
         {
+            if (!RolesHelper.ValidRoles.Contains(averageOption.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{averageOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                );
+            }
+
             if (averageOption.Change)
             {
                 await DisplayAverageChange(averageOption.Name, averageOption.Role, averageOption.Outcome);
@@ -223,6 +225,14 @@ namespace OverwatchMatchHistoryTracker.Options
 
         private async ValueTask ProcessDisplayOption(DisplayOption displayOption)
         {
+            if (!RolesHelper.ValidRoles.Contains(displayOption.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{displayOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                );
+            }
+
             SqliteCommand command = await GetCommand(displayOption.Name);
             command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
 
