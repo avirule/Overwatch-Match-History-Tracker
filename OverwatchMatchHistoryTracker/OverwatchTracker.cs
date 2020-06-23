@@ -8,10 +8,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.Data.Sqlite;
+using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.Options
+namespace OverwatchMatchHistoryTracker
 {
     public class OverwatchTracker
     {
@@ -21,7 +22,6 @@ namespace OverwatchMatchHistoryTracker.Options
             typeof(AverageOption),
             typeof(DisplayOption)
         };
-
 
         private static readonly string _DatabasePathFormat = $@"{Environment.CurrentDirectory}/{{0}}.sqlite";
 
@@ -133,93 +133,68 @@ namespace OverwatchMatchHistoryTracker.Options
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{averageOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                    $"Invalid role provided: '{averageOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
                 );
             }
 
-            if (averageOption.Change)
+            double average = averageOption.Change
+                ? await GetMatchSRChanges(averageOption.Name, averageOption.Role, averageOption.Outcome).DefaultIfEmpty().AverageAsync()
+                : await GetMatchSRs(averageOption.Name, averageOption.Role, averageOption.Outcome).DefaultIfEmpty().AverageAsync();
+
+            Console.WriteLine(average == 0d
+                ? $"No or not enough historic SR data for outcome '{averageOption.Outcome}'."
+                : $"Average historic SR for outcome '{averageOption.Outcome}': {average:0}");
+        }
+
+        private async IAsyncEnumerable<int> GetMatchSRs(string name, string role, string outcome)
+        {
+            Stack<int> orderedSRs = new Stack<int>(await GetOrderedSRs(name, role).ToListAsync());
+
+            while (orderedSRs.Count > 1)
             {
-                await DisplayAverageChange(averageOption.Name, averageOption.Role, averageOption.Outcome);
-            }
-            else
-            {
-                await DisplayAverageSR(averageOption.Name, averageOption.Role, averageOption.Outcome);
+                int sr = orderedSRs.Pop();
+                int srChange = sr - orderedSRs.Peek();
+
+                switch (outcome)
+                {
+                    case "win" when srChange > 0:
+                    case "loss" when srChange < 0:
+                    case "draw" when srChange == 0:
+                        yield return sr;
+                        break;
+                }
             }
         }
 
-        private async ValueTask DisplayAverageSR(string name, string role, string outcome)
+        private async IAsyncEnumerable<int> GetMatchSRChanges(string name, string role, string outcome)
         {
-            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
+            Stack<int> orderedSRs = new Stack<int>(await GetOrderedSRs(name, role).ToListAsync());
 
-            if (orderedSRs.Count > 0)
+            while (orderedSRs.Count > 0)
             {
-                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 2; index >= 0; sr = orderedSRs[index], index--)
-                {
-                    int srChange = sr - orderedSRs[index];
+                int sr = orderedSRs.Pop();
 
-                    switch (outcome)
-                    {
-                        case "win" when srChange > 0:
-                        case "loss" when srChange < 0:
-                        case "draw" when srChange == 0:
-                            // don't drop values that are valid for outcome
-                            break;
-                        default:
-                            orderedSRs.RemoveAt(index);
-                            break;
-                    }
+                if (!orderedSRs.TryPeek(out int peek))
+                {
+                    // break out if we can't peek a value (count is 0)
+                    yield break;
+                }
+
+                int srChange = sr - peek;
+
+                switch (outcome)
+                {
+                    case "win" when srChange > 0:
+                    case "loss" when srChange < 0:
+                    case "draw" when srChange == 0:
+                    case "overall" when srChange != 0:
+                        yield return Math.Abs(srChange);
+                        break;
                 }
             }
-
-            Console.WriteLine(orderedSRs.Count == 0
-                ? $"No historic SR data for outcome '{outcome}'."
-                : $"Average historic SR for outcome '{outcome}': {orderedSRs.Average():0}");
-        }
-
-        private async ValueTask DisplayAverageChange(string name, string role, string outcome)
-        {
-            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
-            List<int> outcomeSRChanges = new List<int>();
-
-            if (orderedSRs.Count > 0)
-            {
-                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 2; index >= 0; sr = orderedSRs[index], index--)
-                {
-                    int srChange = sr - orderedSRs[index];
-
-                    switch (outcome.ToLowerInvariant())
-                    {
-                        case "win" when srChange > 0:
-                        case "loss" when srChange < 0:
-                        case "draw" when srChange == 0:
-                        case "overall" when srChange != 0:
-                            outcomeSRChanges.Add(Math.Abs(srChange));
-                            break;
-                    }
-                }
-            }
-
-            Console.WriteLine(outcomeSRChanges.Count == 0
-                ? $"No historic SR change data for outcome '{outcome}'."
-                : $"Average historic SR change for outcome '{outcome}': {outcomeSRChanges.Average():0}");
         }
 
         #endregion
-
-
-        private async ValueTask CollatePeak(string name, string role)
-        {
-            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
-
-            Console.WriteLine(orderedSRs.Count == 0 ? "No historic SR data." : $"Peak historic SR: {orderedSRs.Max()}");
-        }
-
-        private async ValueTask CollateValley(string name, string role)
-        {
-            List<int> orderedSRs = await GetOrderedSRs(name, role).ToListAsync();
-
-            Console.WriteLine(orderedSRs.Count == 0 ? "No historic SR data." : $"Valley historic SR: {orderedSRs.Min()}");
-        }
 
         #region DisplayOption
 
@@ -229,7 +204,7 @@ namespace OverwatchMatchHistoryTracker.Options
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{displayOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                    $"Invalid role provided: '{displayOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
                 );
             }
 

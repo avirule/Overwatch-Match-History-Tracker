@@ -28,8 +28,8 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             Console.WriteLine(_DISPLAY_FORMAT,
                 timestamp.PadLeft(10 + (timestamp.Length / 2)).PadRight(19),
-                sr.PadLeft(2).PadRight(4),
-                change.PadLeft(4).PadRight(6),
+                sr.PadLeft(2 + (sr.Length / 2)).PadRight(4),
+                change.PadLeft(3 + (change.Length / 2)).PadRight(6),
                 map.PadLeft(13 + (map.Length / 2)).PadRight(25),
                 comment);
         }
