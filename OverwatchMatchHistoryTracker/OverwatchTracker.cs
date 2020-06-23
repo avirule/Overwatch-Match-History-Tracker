@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ClosedXML.Excel;
 using CommandLine;
 using Microsoft.Data.Sqlite;
+using OverwatchMatchHistoryTracker.Helpers;
 using OverwatchMatchHistoryTracker.Options;
 
 #endregion
@@ -19,7 +21,8 @@ namespace OverwatchMatchHistoryTracker
         {
             typeof(MatchOption),
             typeof(AverageOption),
-            typeof(DisplayOption)
+            typeof(DisplayOption),
+            typeof(ExportOption)
         };
 
         public static async ValueTask Process(IEnumerable<string> args)
@@ -28,11 +31,6 @@ namespace OverwatchMatchHistoryTracker
             {
                 object? parsed = null;
                 Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
-
-                if (parsed is null)
-                {
-                    throw new NullReferenceException(nameof(parsed));
-                }
 
                 switch (parsed)
                 {
@@ -44,6 +42,9 @@ namespace OverwatchMatchHistoryTracker
                         break;
                     case DisplayOption displayOption:
                         await ProcessDisplayOption(displayOption);
+                        break;
+                    case ExportOption exportOption:
+                        await ProcessExportOption(exportOption);
                         break;
                     default:
                         throw new InvalidOperationException("Did not recognize given arguments.");
@@ -195,7 +196,7 @@ namespace OverwatchMatchHistoryTracker
 
             if (historicData.Count == 0)
             {
-                Console.WriteLine("No historic match data to display.");
+                Console.WriteLine("No historic match data.");
             }
             else
             {
@@ -222,6 +223,101 @@ namespace OverwatchMatchHistoryTracker
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region ExportOption
+
+        private static async ValueTask ProcessExportOption(ExportOption exportOption)
+        {
+            if (!RolesHelper.ValidRoles.Contains(exportOption.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{exportOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
+                );
+            }
+
+            SqliteCommand command = await GetCommand(exportOption.Name, false);
+            command.CommandText = $"SELECT * FROM {exportOption.Role} ORDER BY datetime(timestamp)";
+
+            List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
+            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
+                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)));
+            }
+
+            if (historicData.Count == 0)
+            {
+                Console.WriteLine("No historic match data.");
+            }
+            else
+            {
+                using XLWorkbook workbook = ConstructSpreadsheet(historicData);
+                workbook.SaveAs($"{exportOption.Name}_{exportOption.Role}.xlsx");
+            }
+        }
+
+        private static XLWorkbook ConstructSpreadsheet(IReadOnlyList<(string Timestamp, int SR, string Map, string Comment)> historicData)
+        {
+            XLWorkbook workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Support");
+
+            worksheet.Row(1).Height = 10;
+            worksheet.Column(1).Width = 1;
+
+            // headers
+            worksheet.Cell("B2").Value = "timestamp";
+            worksheet.Cell("B2").Style.Font.Bold = true;
+            worksheet.Column("B").Width = 20;
+            worksheet.Column("B").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Cell("C2").Value = "sr";
+            worksheet.Cell("C2").Style.Font.Bold = true;
+            worksheet.Column("C").Width = 5;
+            worksheet.Column("C").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Cell("D2").Value = "change";
+            worksheet.Cell("D2").Style.Font.Bold = true;
+            worksheet.Column("D").Width = 7;
+            worksheet.Column("D").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Cell("E2").Value = "map";
+            worksheet.Cell("E2").Style.Font.Bold = true;
+            worksheet.Column("E").Width = 26;
+            worksheet.Column("E").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Cell("F2").Value = "comment";
+            worksheet.Cell("F2").Style.Font.Bold = true;
+            worksheet.Column("F").Width = 150;
+            worksheet.Column("F").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+            // data
+            for (int index = 0; index < historicData.Count; index++)
+            {
+                (string timestamp, int sr, string map, string comment) = historicData[index];
+
+                worksheet.Cell($"B{index + 3}").Value = timestamp;
+                worksheet.Cell($"C{index + 3}").Value = sr;
+
+                int change = index == (historicData.Count - 1) ? 0 : historicData[index + 1].SR - sr;
+                string changeString = change > 0 ? $"+{change}" : change.ToString();
+                worksheet.Cell($"D{index + 3}").Value = changeString;
+                worksheet.Cell($"D{index + 3}").Style.Fill.BackgroundColor =
+                    change > 0
+                        ? XLColor.Green
+                        : change < 0
+                            ? XLColor.Red
+                            : XLColor.Gray;
+
+                worksheet.Cell($"E{index + 3}").Value = map;
+                worksheet.Cell($"F{index + 3}").Value = comment;
+            }
+
+            return workbook;
         }
 
         #endregion

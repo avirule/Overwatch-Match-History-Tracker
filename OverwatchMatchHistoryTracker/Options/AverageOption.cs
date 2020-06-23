@@ -9,7 +9,7 @@ using CommandLine.Text;
 namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("average", HelpText = "Get average historic SR.")]
-    public class AverageOption : CollateOption
+    public class AverageOption
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
@@ -19,6 +19,10 @@ namespace OverwatchMatchHistoryTracker.Options
                 Role = "DPS"
             }),
         };
+
+        private string _Name;
+        private string _Role;
+        private string _Outcome;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;

@@ -10,7 +10,7 @@ using CommandLine.Text;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker
+namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("match", HelpText = "Commits new match data.")]
     public class MatchOption

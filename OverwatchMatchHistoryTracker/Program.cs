@@ -1,12 +1,8 @@
-﻿#define UNIT_TEST
+﻿//#define UNIT_TEST
 
 #region
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
@@ -16,20 +12,17 @@ namespace OverwatchMatchHistoryTracker
     {
         private static async Task Main(string[] args)
         {
-            OverwatchTracker tracker = new OverwatchTracker();
-
 #if DEBUG && UNIT_TEST
             foreach (string[] unitTestArgs in _UnitTestArgs.Values.SelectMany(unitTestArgsCollection => unitTestArgsCollection))
             {
                 await OverwatchTracker.Process(unitTestArgs);
             }
 #else
-            await tracker.Process(args);
+            await OverwatchTracker.Process(args);
 #endif
         }
 
 #if DEBUG && UNIT_TEST
-
         private static readonly Dictionary<Type, string[][]> _UnitTestArgs = new Dictionary<Type, string[][]>
         {
             {
@@ -120,7 +113,6 @@ namespace OverwatchMatchHistoryTracker
                 }
             }
         };
-
 #endif
     }
 }
