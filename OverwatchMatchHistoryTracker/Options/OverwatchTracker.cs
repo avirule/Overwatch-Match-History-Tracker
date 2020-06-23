@@ -236,9 +236,11 @@ namespace OverwatchMatchHistoryTracker.Options
             }
             else
             {
-                DisplayOption.Display("timestamp", "sr", "change", "map", "comment");
-                Console.WriteLine($" {new string('-', 73)}");
+                Console.WriteLine(); // add blank new line
+                DisplayOption.Display("timestamp", "sr", "change", "map", "comment"); // headers
+                Console.WriteLine($" {new string('-', 73)}"); // header-body seperator
 
+                // body (values)
                 int lastSR = historicData[0].SR;
                 foreach ((string timestamp, int sr, string map, string comment) in historicData)
                 {
