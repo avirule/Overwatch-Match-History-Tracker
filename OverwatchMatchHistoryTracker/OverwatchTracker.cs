@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -263,60 +264,64 @@ namespace OverwatchMatchHistoryTracker
 
         private static XLWorkbook ConstructSpreadsheet(IReadOnlyList<(string Timestamp, int SR, string Map, string Comment)> historicData)
         {
+            const int row_index_offset = 3;
+            int lastRow = historicData.Count + row_index_offset - 1;
+
             XLWorkbook workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Support");
 
-            worksheet.Row(1).Height = 10;
-            worksheet.Column(1).Width = 1;
-
             // headers
             worksheet.Cell("B2").Value = "timestamp";
-            worksheet.Cell("B2").Style.Font.Bold = true;
-            worksheet.Column("B").Width = 20;
-
             worksheet.Cell("C2").Value = "sr";
-            worksheet.Cell("C2").Style.Font.Bold = true;
-            worksheet.Column("C").Width = 5;
-
             worksheet.Cell("D2").Value = "change";
-            worksheet.Cell("D2").Style.Font.Bold = true;
-            worksheet.Column("D").Width = 7;
-
             worksheet.Cell("E2").Value = "map";
-            worksheet.Cell("E2").Style.Font.Bold = true;
-            worksheet.Column("E").Width = 26;
-
             worksheet.Cell("F2").Value = "comment";
-            worksheet.Cell("F2").Style.Font.Bold = true;
-            worksheet.Column("F").Width = 150;
+            worksheet.Range(worksheet.Cell("B2").Address, worksheet.Cell("F2").Address).Style.Font.Bold = true;
+
+            worksheet.Row(2).Cells().Style.Border.TopBorder = XLBorderStyleValues.Thin;
+            worksheet.Row(2).Cells().Style.Border.BottomBorder = XLBorderStyleValues.Thin;
 
             // data
             for (int index = 0; index < historicData.Count; index++)
             {
                 (string timestamp, int sr, string map, string comment) = historicData[index];
 
-                worksheet.Cell($"B{index + 3}").Value = timestamp;
-                worksheet.Cell($"C{index + 3}").Value = sr;
+                worksheet.Cell($"B{index + row_index_offset}").Value = timestamp;
+                worksheet.Cell($"C{index + row_index_offset}").Value = sr;
 
                 int change = index == (historicData.Count - 1) ? 0 : historicData[index + 1].SR - sr;
                 string changeString = change > 0 ? $"+{change}" : change.ToString();
-                worksheet.Cell($"D{index + 3}").Value = changeString;
-                worksheet.Cell($"D{index + 3}").Style.Fill.BackgroundColor =
+                worksheet.Cell($"D{index + row_index_offset}").Value = changeString;
+                worksheet.Cell($"D{index + row_index_offset}").Style.Fill.BackgroundColor =
                     change > 0
-                        ? XLColor.Green
+                        ? XLColor.LimeGreen
                         : change < 0
-                            ? XLColor.Red
-                            : XLColor.Gray;
+                            ? XLColor.FerrariRed
+                            : XLColor.LightGray;
 
-                worksheet.Cell($"E{index + 3}").Value = map;
-                worksheet.Cell($"F{index + 3}").Value = comment;
+                worksheet.Cell($"E{index + row_index_offset}").Value = map;
+                worksheet.Cell($"F{index + row_index_offset}").Value = comment;
             }
 
-            worksheet.Column("B").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Column("C").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Column("D").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Column("E").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Column("F").Cells().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            worksheet.Columns().AdjustToContents();
+            worksheet.Columns().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Column("B").Cells().Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+            worksheet.Column("B").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+
+            worksheet.Column("C").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+
+            worksheet.Column("D").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+
+            worksheet.Column("E").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+
+            // use range to ensure empty comments are bordered
+            worksheet.Range(worksheet.Cell("F2").Address, worksheet.Cell($"F{lastRow}").Address).Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+
+            worksheet.Row(lastRow).Cells().Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            worksheet.Row(1).Height = 10;
+            worksheet.Column(1).Width = 1;
 
             return workbook;
         }
