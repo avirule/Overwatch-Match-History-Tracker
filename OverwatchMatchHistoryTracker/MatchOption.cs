@@ -37,7 +37,7 @@ namespace OverwatchMatchHistoryTracker
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
 
-        [Option('n', "new", Required = false, HelpText = "Used to create new player match history database.")]
+        [Option('n', "new", Required = false, HelpText = "Used to create new player match history database.", Default = false)]
         public bool NewPlayer
         {
             get => _NewPlayer;

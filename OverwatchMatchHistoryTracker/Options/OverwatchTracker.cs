@@ -28,8 +28,7 @@ namespace OverwatchMatchHistoryTracker.Options
             "support"
         };
 
-        private static readonly string _CurrentDirectory = Environment.CurrentDirectory;
-        private static readonly string _DatabasePathFormat = $@"{_CurrentDirectory}/{{0}}.sqlite";
+        private static readonly string _DatabasePathFormat = $@"{Environment.CurrentDirectory}/{{0}}.sqlite";
 
         private SqliteConnection? _Connection;
 
@@ -37,7 +36,6 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             try
             {
-
                 Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(async parsed =>
                 {
                     switch (parsed)
@@ -147,7 +145,7 @@ namespace OverwatchMatchHistoryTracker.Options
 
             if (orderedSRs.Count > 0)
             {
-                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 1; index > 0; index--, sr = orderedSRs[index])
+                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 2; index >= 0; sr = orderedSRs[index], index--)
                 {
                     int srChange = sr - orderedSRs[index];
 
@@ -177,9 +175,9 @@ namespace OverwatchMatchHistoryTracker.Options
 
             if (orderedSRs.Count > 0)
             {
-                for (int sr = orderedSRs[0], index = 1; index < orderedSRs.Count; sr = orderedSRs[index], index++)
+                for (int sr = orderedSRs[^1], index = orderedSRs.Count - 2; index >= 0; sr = orderedSRs[index], index--)
                 {
-                    int srChange = orderedSRs[index] - sr;
+                    int srChange = sr - orderedSRs[index];
 
                     switch (outcome.ToLowerInvariant())
                     {

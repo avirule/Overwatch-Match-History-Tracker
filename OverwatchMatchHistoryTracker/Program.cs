@@ -12,11 +12,13 @@ namespace OverwatchMatchHistoryTracker
 {
     internal class Program
     {
+        #define UNIT_TEST
+
         private static async Task Main(string[] args)
         {
             OverwatchTracker tracker = new OverwatchTracker();
 
-#if DEBUG
+#if DEBUG && UNIT_TEST
             foreach (string[] unitTestArgs in _UnitTestArgs.Values.SelectMany(unitTestArgsCollection => unitTestArgsCollection))
             {
                 await tracker.Process(unitTestArgs);
@@ -38,7 +40,7 @@ namespace OverwatchMatchHistoryTracker
                         "match",
                         "riki",
                         "support",
-                        "2555",
+                        "2527",
                         "hanamura",
                         "unit test comment"
                     }
@@ -52,6 +54,13 @@ namespace OverwatchMatchHistoryTracker
                         "average",
                         "riki",
                         "support"
+                    },
+                    new[]
+                    {
+                        "average",
+                        "riki",
+                        "support",
+                        "win"
                     },
                     new[]
                     {
@@ -74,6 +83,14 @@ namespace OverwatchMatchHistoryTracker
                         "riki",
                         "support",
                         "win"
+                    },
+                    new[]
+                    {
+                        "average",
+                        "-c",
+                        "riki",
+                        "support",
+                        "loss"
                     }
                 }
             },

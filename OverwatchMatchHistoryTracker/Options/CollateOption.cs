@@ -1,7 +1,3 @@
-#region
-
-#endregion
-
 namespace OverwatchMatchHistoryTracker.Options
 {
     public abstract class CollateOption
