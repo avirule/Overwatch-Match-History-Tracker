@@ -52,7 +52,7 @@ namespace OverwatchMatchHistoryTracker
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"{ex.Message} Operation not completed.");
             }
         }
 
@@ -60,7 +60,7 @@ namespace OverwatchMatchHistoryTracker
 
         private static async ValueTask ProcessMatchOption(MatchOption matchOption)
         {
-            if (!RolesHelper.ValidRoles.Contains(matchOption.Role))
+            if (!RolesHelper.Valid.Contains(matchOption.Role))
             {
                 throw new InvalidOperationException
                 (
@@ -68,7 +68,7 @@ namespace OverwatchMatchHistoryTracker
                 );
             }
 
-            SqliteCommand command = await GetCommand(matchOption.Name, matchOption.NewPlayer);
+            SqliteCommand command = await GetCommand(matchOption.Name);
             command.CommandText =
                 $@"
                     CREATE TABLE IF NOT EXISTS {matchOption.Role}
@@ -104,11 +104,11 @@ namespace OverwatchMatchHistoryTracker
 
         private static async ValueTask ProcessAverageOption(AverageOption averageOption)
         {
-            if (!RolesHelper.ValidRoles.Contains(averageOption.Role))
+            if (!RolesHelper.Valid.Contains(averageOption.Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{averageOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{averageOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
@@ -175,15 +175,16 @@ namespace OverwatchMatchHistoryTracker
 
         private static async ValueTask ProcessDisplayOption(DisplayOption displayOption)
         {
-            if (!RolesHelper.ValidRoles.Contains(displayOption.Role))
+            if (!RolesHelper.Valid.Contains(displayOption.Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{displayOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{displayOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
-            SqliteCommand command = await GetCommand(displayOption.Name, false);
+            SqliteCommand command = await GetCommand(displayOption.Name);
+            await VerifyRoleTableExists(command, displayOption.Role);
             command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
@@ -231,15 +232,16 @@ namespace OverwatchMatchHistoryTracker
 
         private static async ValueTask ProcessExportOption(ExportOption exportOption)
         {
-            if (!RolesHelper.ValidRoles.Contains(exportOption.Role))
+            if (!RolesHelper.Valid.Contains(exportOption.Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{exportOption.Role}' (valid roles are {string.Join(", ", RolesHelper.ValidRoles.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{exportOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
-            SqliteCommand command = await GetCommand(exportOption.Name, false);
+            SqliteCommand command = await GetCommand(exportOption.Name);
+            await VerifyRoleTableExists(command, exportOption.Role);
             command.CommandText = $"SELECT * FROM {exportOption.Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
@@ -336,16 +338,23 @@ namespace OverwatchMatchHistoryTracker
 
         #region Database
 
-        private static async ValueTask<SqliteCommand> GetCommand(string name, bool newPlayer)
+        private static async ValueTask<SqliteCommand> GetCommand(string name)
         {
             string databasePath = $@"{Environment.CurrentDirectory}/{name}.sqlite";
 
-            if (!File.Exists(databasePath) && !newPlayer)
+            if (!File.Exists(databasePath))
             {
-                throw new InvalidOperationException
-                (
-                    $"No match history database has been created for player '{name}'. Use the '-n' flag to create it instead of throwing an error."
-                );
+                Console.Write($"No match history database exists for '{name}'. Would you like to create one (y / n)? ");
+                ConsoleKey key = Console.ReadKey().Key;
+                Console.Write("\r\n");
+
+                switch (key)
+                {
+                    case ConsoleKey.Y:
+                        break;
+                    default:
+                        throw new InvalidOperationException("Match history database not found.");
+                }
             }
 
             SqliteConnection connection = new SqliteConnection($"Data Source={databasePath}");
@@ -354,9 +363,28 @@ namespace OverwatchMatchHistoryTracker
             return command;
         }
 
+        private static async ValueTask VerifyRoleTableExists(SqliteCommand command, string role)
+        {
+            if (!RolesHelper.Valid.Contains(role))
+            {
+                throw new ArgumentException("Invalid role provided.", nameof(role));
+            }
+            else
+            {
+                command.CommandText = $"SELECT name FROM sqlite_master WHERE type='table' AND name='{role}'";
+                object result = await command.ExecuteScalarAsync();
+
+                if (result is null)
+                {
+                    throw new InvalidOperationException($"No data for role '{role}' exists.");
+                }
+            }
+        }
+
         private static async IAsyncEnumerable<int> GetOrderedSRs(string name, string role)
         {
-            SqliteCommand command = await GetCommand(name, false);
+            SqliteCommand command = await GetCommand(name);
+            await VerifyRoleTableExists(command, role);
             command.CommandText = $"SELECT sr FROM {role} ORDER BY datetime(timestamp)";
 
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();

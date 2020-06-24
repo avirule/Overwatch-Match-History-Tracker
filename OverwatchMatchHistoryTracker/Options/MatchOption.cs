@@ -27,7 +27,6 @@ namespace OverwatchMatchHistoryTracker.Options
             })
         };
 
-        private bool _NewPlayer;
         private string _Name;
         private string _Role;
         private string _Map;
@@ -36,13 +35,6 @@ namespace OverwatchMatchHistoryTracker.Options
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
-
-        [Option('n', "new", Required = false, HelpText = "Used to create new player match history database.", Default = false)]
-        public bool NewPlayer
-        {
-            get => _NewPlayer;
-            set => _NewPlayer = value;
-        }
 
         [Value(0, MetaName = nameof(Name), Required = true, HelpText = "Name of player to log match info for.")]
         public string Name
@@ -81,7 +73,6 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public MatchOption()
         {
-            _NewPlayer = false;
             _Name = _Role = _Map = _Comment = string.Empty;
             _SR = -1;
         }

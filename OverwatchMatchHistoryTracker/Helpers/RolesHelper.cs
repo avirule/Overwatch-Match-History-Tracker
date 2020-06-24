@@ -12,7 +12,7 @@ namespace OverwatchMatchHistoryTracker.Helpers
         public const string DPS = "dps";
         public const string SUPPORT = "support";
 
-        public static readonly HashSet<string> ValidRoles = new HashSet<string>
+        public static readonly HashSet<string> Valid = new HashSet<string>
         {
             TANK,
             DPS,
