@@ -18,7 +18,7 @@ using OverwatchMatchHistoryTracker.Helpers;
 namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("match", HelpText = "Commits new match data.")]
-    public class MatchOption
+    public class MatchOption : CommandOption
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
@@ -82,20 +82,20 @@ namespace OverwatchMatchHistoryTracker.Options
             _SR = -1;
         }
 
-        public static async ValueTask Process(MatchOption matchOption)
+        public override async ValueTask Process()
         {
-            if (!RolesHelper.Valid.Contains(matchOption.Role))
+            if (!RolesHelper.Valid.Contains(Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{matchOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                    $"Invalid role provided: '{Role}' (valid roles are 'tank', 'dps', and 'support')."
                 );
             }
 
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(matchOption.Name);
+            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
             command.CommandText =
                 $@"
-                    CREATE TABLE IF NOT EXISTS {matchOption.Role}
+                    CREATE TABLE IF NOT EXISTS {Role}
                     (
                         timestamp TEXT NOT NULL,
                         sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
@@ -108,15 +108,15 @@ namespace OverwatchMatchHistoryTracker.Options
                 ";
             await command.ExecuteNonQueryAsync();
 
-            if (MapsHelper.Aliases.ContainsKey(matchOption.Map))
+            if (MapsHelper.Aliases.ContainsKey(Map))
             {
-                matchOption.Map = MapsHelper.Aliases[matchOption.Map];
+                Map = MapsHelper.Aliases[Map];
             }
 
-            command.CommandText = $"INSERT INTO {matchOption.Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
-            command.Parameters.AddWithValue("$sr", matchOption.SR);
-            command.Parameters.AddWithValue("$map", matchOption.Map);
-            command.Parameters.AddWithValue("$comment", matchOption.Comment);
+            command.CommandText = $"INSERT INTO {Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
+            command.Parameters.AddWithValue("$sr", SR);
+            command.Parameters.AddWithValue("$map", Map);
+            command.Parameters.AddWithValue("$comment", Comment);
             await command.ExecuteNonQueryAsync();
 
             Console.WriteLine("Successfully committed match data.");

@@ -14,7 +14,7 @@ using OverwatchMatchHistoryTracker.Helpers;
 namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("display", HelpText = "Display tabulated match history data.")]
-    public class DisplayOption
+    public class DisplayOption : CommandOption
     {
         private const string _DISPLAY_FORMAT = " {0} | {1} | {2} | {3} | {4} ";
 
@@ -69,19 +69,19 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public DisplayOption() => _Name = _Role = _Outcome = string.Empty;
 
-        public static async ValueTask Process(DisplayOption displayOption)
+        public override async ValueTask Process()
         {
-            if (!RolesHelper.Valid.Contains(displayOption.Role))
+            if (!RolesHelper.Valid.Contains(Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{displayOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(displayOption.Name);
-            await MatchHistoryProvider.VerifyRoleTableExists(command, displayOption.Role);
-            command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
+            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
+            await MatchHistoryProvider.VerifyRoleTableExists(command, Role);
+            command.CommandText = $"SELECT * FROM {Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();
@@ -99,7 +99,7 @@ namespace OverwatchMatchHistoryTracker.Options
             {
                 Console.WriteLine(); // add blank new line
                 Display("timestamp", "sr", "change", "map", "comment"); // headers
-                Console.WriteLine($" {new string('-', 73)}"); // header-body seperator
+                Console.WriteLine($" {new string('-', 73)}"); // header-body separator
 
                 // body (values)
                 int lastSR = historicData[0].SR;
@@ -107,7 +107,7 @@ namespace OverwatchMatchHistoryTracker.Options
                 {
                     int change = sr - lastSR;
 
-                    switch (displayOption.Outcome)
+                    switch (Outcome)
                     {
                         case "win" when change > 0:
                         case "loss" when change < 0:

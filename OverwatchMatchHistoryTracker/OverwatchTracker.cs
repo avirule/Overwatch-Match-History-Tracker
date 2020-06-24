@@ -27,23 +27,13 @@ namespace OverwatchMatchHistoryTracker
                 object? parsed = null;
                 Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
 
-                switch (parsed)
+                if (parsed is CommandOption commandOption)
                 {
-                    case MatchOption matchOption:
-                        await MatchOption.Process(matchOption);
-                        break;
-                    case AverageOption averageOption:
-                        await AverageOption.Process(averageOption);
-                        break;
-                    case DisplayOption displayOption:
-                        await DisplayOption.Process(displayOption);
-                        break;
-                    case ExportOption exportOption:
-                        await ExportOption.Process(exportOption);
-                        break;
-                    default:
-                        throw new InvalidOperationException("Did not recognize given arguments.");
+                    await commandOption.Process();
+                    return;
                 }
+
+                throw new InvalidOperationException("Did not recognize given arguments.");
             }
             catch (Exception ex)
             {

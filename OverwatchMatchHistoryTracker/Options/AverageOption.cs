@@ -13,7 +13,7 @@ using OverwatchMatchHistoryTracker.Helpers;
 namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("average", HelpText = "Get average historic SR.")]
-    public class AverageOption
+    public class AverageOption : CommandOption
     {
         private static readonly List<Example> _Examples = new List<Example>
         {
@@ -58,23 +58,23 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public AverageOption() => _Role = _Outcome = _Name = string.Empty;
 
-        public static async ValueTask Process(AverageOption averageOption)
+        public override async ValueTask Process()
         {
-            if (!RolesHelper.Valid.Contains(averageOption.Role))
+            if (!RolesHelper.Valid.Contains(Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{averageOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
-            double average = averageOption.Change
-                ? await GetMatchSRChanges(averageOption.Name, averageOption.Role, averageOption.Outcome).DefaultIfEmpty().AverageAsync()
-                : await GetMatchSRs(averageOption.Name, averageOption.Role, averageOption.Outcome).DefaultIfEmpty().AverageAsync();
+            double average = Change
+                ? await GetMatchSRChanges(Name, Role, Outcome).DefaultIfEmpty().AverageAsync()
+                : await GetMatchSRs(Name, Role, Outcome).DefaultIfEmpty().AverageAsync();
 
             Console.WriteLine(average == 0d
-                ? $"No or not enough historic SR data for outcome '{averageOption.Outcome}'."
-                : $"Average historic SR for outcome '{averageOption.Outcome}': {average:0}");
+                ? $"No or not enough historic SR data for outcome '{Outcome}'."
+                : $"Average historic SR for outcome '{Outcome}': {average:0}");
         }
 
         private static async IAsyncEnumerable<int> GetMatchSRs(string name, string role, string outcome)

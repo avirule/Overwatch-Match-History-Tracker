@@ -15,7 +15,7 @@ using OverwatchMatchHistoryTracker.Helpers;
 namespace OverwatchMatchHistoryTracker.Options
 {
     [Verb("export", HelpText = "Exports a match history database to another format.")]
-    public class ExportOption
+    public class ExportOption : CommandOption
     {
         private string _Name;
         private string _Role;
@@ -36,19 +36,19 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public ExportOption() => _Name = _Role = string.Empty;
 
-        public static async ValueTask Process(ExportOption exportOption)
+        public override async ValueTask Process()
         {
-            if (!RolesHelper.Valid.Contains(exportOption.Role))
+            if (!RolesHelper.Valid.Contains(Role))
             {
                 throw new InvalidOperationException
                 (
-                    $"Invalid role provided: '{exportOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
+                    $"Invalid role provided: '{Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
                 );
             }
 
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(exportOption.Name);
-            await MatchHistoryProvider.VerifyRoleTableExists(command, exportOption.Role);
-            command.CommandText = $"SELECT * FROM {exportOption.Role} ORDER BY datetime(timestamp)";
+            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
+            await MatchHistoryProvider.VerifyRoleTableExists(command, Role);
+            command.CommandText = $"SELECT * FROM {Role} ORDER BY datetime(timestamp)";
 
             List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
             await using SqliteDataReader reader = await command.ExecuteReaderAsync();
@@ -66,7 +66,7 @@ namespace OverwatchMatchHistoryTracker.Options
             {
                 using IXLWorkbook workbook = ConstructSpreadsheet(historicData);
 
-                string filePath = Path.GetFullPath($"{exportOption.Name}_{exportOption.Role}.xlsx");
+                string filePath = Path.GetFullPath($"{Name}_{Role}.xlsx");
                 workbook.SaveAs(filePath);
                 Console.WriteLine($"Successfully exported match data to \"{filePath}\"");
             }
