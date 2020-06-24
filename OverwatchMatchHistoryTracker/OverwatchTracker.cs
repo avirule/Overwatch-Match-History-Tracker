@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -257,18 +256,21 @@ namespace OverwatchMatchHistoryTracker
             }
             else
             {
-                using XLWorkbook workbook = ConstructSpreadsheet(historicData);
-                workbook.SaveAs($"{exportOption.Name}_{exportOption.Role}.xlsx");
+                using IXLWorkbook workbook = ConstructSpreadsheet(historicData);
+
+                string fileName = $"{exportOption.Name}_{exportOption.Role}.xlsx";
+                workbook.SaveAs(fileName);
+                Console.WriteLine($"Successfully exported match data to \"{Environment.CurrentDirectory}/{fileName}\"");
             }
         }
 
-        private static XLWorkbook ConstructSpreadsheet(IReadOnlyList<(string Timestamp, int SR, string Map, string Comment)> historicData)
+        private static IXLWorkbook ConstructSpreadsheet(IReadOnlyList<(string Timestamp, int SR, string Map, string Comment)> historicData)
         {
             const int row_index_offset = 3;
-            int lastRow = historicData.Count + row_index_offset - 1;
+            int lastRow = (historicData.Count + row_index_offset) - 1;
 
-            XLWorkbook workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("Support");
+            IXLWorkbook workbook = new XLWorkbook();
+            IXLWorksheet worksheet = workbook.Worksheets.Add("Support");
 
             // headers
             worksheet.Cell("B2").Value = "timestamp";
@@ -276,6 +278,8 @@ namespace OverwatchMatchHistoryTracker
             worksheet.Cell("D2").Value = "change";
             worksheet.Cell("E2").Value = "map";
             worksheet.Cell("F2").Value = "comment";
+
+            // bold the headers
             worksheet.Range(worksheet.Cell("B2").Address, worksheet.Cell("F2").Address).Style.Font.Bold = true;
 
             worksheet.Row(2).Cells().Style.Border.TopBorder = XLBorderStyleValues.Thin;
@@ -303,20 +307,22 @@ namespace OverwatchMatchHistoryTracker
                 worksheet.Cell($"F{index + row_index_offset}").Value = comment;
             }
 
+            // most sizing and styling happens after filling sheet with data to ensure
+            // the styling happens for all relevant cells (styling prior wouldn't, for
+            // instance, affect the empty cells that would-be filled with data.
+
             worksheet.Columns().AdjustToContents();
             worksheet.Columns().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             worksheet.Column("B").Cells().Style.Border.LeftBorder = XLBorderStyleValues.Thin;
             worksheet.Column("B").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
-
             worksheet.Column("C").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
-
             worksheet.Column("D").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
-
             worksheet.Column("E").Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
 
             // use range to ensure empty comments are bordered
-            worksheet.Range(worksheet.Cell("F2").Address, worksheet.Cell($"F{lastRow}").Address).Cells().Style.Border.RightBorder = XLBorderStyleValues.Thin;
+            worksheet.Range(worksheet.Cell("F2").Address, worksheet.Cell($"F{lastRow}").Address).Cells().Style.Border.RightBorder =
+                XLBorderStyleValues.Thin;
 
             worksheet.Row(lastRow).Cells().Style.Border.BottomBorder = XLBorderStyleValues.Thin;
 
