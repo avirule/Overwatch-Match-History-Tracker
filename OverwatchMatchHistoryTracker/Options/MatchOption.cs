@@ -1,8 +1,13 @@
 #region
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using Microsoft.Data.Sqlite;
+using OverwatchMatchHistoryTracker.Helpers;
 
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -75,6 +80,46 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             _Name = _Role = _Map = _Comment = string.Empty;
             _SR = -1;
+        }
+
+        public static async ValueTask Process(MatchOption matchOption)
+        {
+            if (!RolesHelper.Valid.Contains(matchOption.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{matchOption.Role}' (valid roles are 'tank', 'dps', and 'support')."
+                );
+            }
+
+            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(matchOption.Name);
+            command.CommandText =
+                $@"
+                    CREATE TABLE IF NOT EXISTS {matchOption.Role}
+                    (
+                        timestamp TEXT NOT NULL,
+                        sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
+                        map TEXT NOT NULL CHECK
+                            (
+                                {string.Join(" OR ", MapsHelper.Valid.Select(validMap => $"map = \"{validMap}\""))}
+                            ),
+                        comment TEXT DEFAULT NULL
+                    )
+                ";
+            await command.ExecuteNonQueryAsync();
+
+            if (MapsHelper.Aliases.ContainsKey(matchOption.Map))
+            {
+                matchOption.Map = MapsHelper.Aliases[matchOption.Map];
+            }
+
+            command.CommandText = $"INSERT INTO {matchOption.Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
+            command.Parameters.AddWithValue("$sr", matchOption.SR);
+            command.Parameters.AddWithValue("$map", matchOption.Map);
+            command.Parameters.AddWithValue("$comment", matchOption.Comment);
+            await command.ExecuteNonQueryAsync();
+
+            Console.WriteLine("Successfully committed match data.");
         }
     }
 }

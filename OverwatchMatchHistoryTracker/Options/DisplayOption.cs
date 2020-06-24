@@ -2,8 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using Microsoft.Data.Sqlite;
+using OverwatchMatchHistoryTracker.Helpers;
 
 #endregion
 
@@ -64,5 +68,58 @@ namespace OverwatchMatchHistoryTracker.Options
         }
 
         public DisplayOption() => _Name = _Role = _Outcome = string.Empty;
+
+        public static async ValueTask Process(DisplayOption displayOption)
+        {
+            if (!RolesHelper.Valid.Contains(displayOption.Role))
+            {
+                throw new InvalidOperationException
+                (
+                    $"Invalid role provided: '{displayOption.Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
+                );
+            }
+
+            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(displayOption.Name);
+            await MatchHistoryProvider.VerifyRoleTableExists(command, displayOption.Role);
+            command.CommandText = $"SELECT * FROM {displayOption.Role} ORDER BY datetime(timestamp)";
+
+            List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
+            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
+                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)));
+            }
+
+            if (historicData.Count == 0)
+            {
+                Console.WriteLine("No historic match data.");
+            }
+            else
+            {
+                Console.WriteLine(); // add blank new line
+                Display("timestamp", "sr", "change", "map", "comment"); // headers
+                Console.WriteLine($" {new string('-', 73)}"); // header-body seperator
+
+                // body (values)
+                int lastSR = historicData[0].SR;
+                foreach ((string timestamp, int sr, string map, string comment) in historicData)
+                {
+                    int change = sr - lastSR;
+
+                    switch (displayOption.Outcome)
+                    {
+                        case "win" when change > 0:
+                        case "loss" when change < 0:
+                        case "draw" when change == 0:
+                        case "overall":
+                            string changeString = change > 0 ? $"+{change}" : change.ToString(); // add positive-sign to wins
+                            Display(timestamp, sr.ToString(), changeString, map, comment);
+                            lastSR = sr;
+                            break;
+                    }
+                }
+            }
+        }
     }
 }
