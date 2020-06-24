@@ -258,9 +258,9 @@ namespace OverwatchMatchHistoryTracker
             {
                 using IXLWorkbook workbook = ConstructSpreadsheet(historicData);
 
-                string fileName = $"{exportOption.Name}_{exportOption.Role}.xlsx";
-                workbook.SaveAs(fileName);
-                Console.WriteLine($"Successfully exported match data to \"{Environment.CurrentDirectory}/{fileName}\"");
+                string filePath = Path.GetFullPath($"{exportOption.Name}_{exportOption.Role}.xlsx");
+                workbook.SaveAs(filePath);
+                Console.WriteLine($"Successfully exported match data to \"{filePath}\"");
             }
         }
 
