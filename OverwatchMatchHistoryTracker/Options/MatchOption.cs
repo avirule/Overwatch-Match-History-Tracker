@@ -2,11 +2,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Data.Sqlite;
 using OverwatchMatchHistoryTracker.Helpers;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -32,28 +30,12 @@ namespace OverwatchMatchHistoryTracker.Options
             })
         };
 
-        private string _Name;
-        private string _Role;
         private string _Map;
         private int _SR;
-        private string _Comment;
+        private string? _Comment;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
-
-        [Value(0, MetaName = nameof(Name), Required = true, HelpText = "Name of player to log match info for.")]
-        public string Name
-        {
-            get => _Name;
-            set => _Name = value.ToLowerInvariant();
-        }
-
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role player queued as for match.")]
-        public string Role
-        {
-            get => _Role;
-            set => _Role = value.ToLowerInvariant();
-        }
 
         [Value(2, MetaName = nameof(SR), Required = true, HelpText = "Final SR after match ended.")]
         public int SR
@@ -66,11 +48,15 @@ namespace OverwatchMatchHistoryTracker.Options
         public string Map
         {
             get => _Map;
-            set => _Map = value.ToLowerInvariant();
+            set
+            {
+                string lower = value.ToLowerInvariant();
+                _Map = MapsHelper.Aliases.ContainsKey(lower) ? MapsHelper.Aliases[lower] : lower;
+            }
         }
 
         [Value(4, MetaName = nameof(Comment), Required = false, HelpText = "Personal comments for match.")]
-        public string Comment
+        public string? Comment
         {
             get => _Comment;
             set => _Comment = value;
@@ -78,48 +64,27 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public MatchOption()
         {
-            _Name = _Role = _Map = _Comment = string.Empty;
+            Map = _Comment = string.Empty;
             _SR = -1;
         }
 
-        public override async ValueTask Process()
+        public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
         {
-            if (!RolesHelper.Valid.Contains(Role))
-            {
-                throw new InvalidOperationException
-                (
-                    $"Invalid role provided: '{Role}' (valid roles are 'tank', 'dps', and 'support')."
-                );
-            }
-
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
-            command.CommandText =
-                $@"
-                    CREATE TABLE IF NOT EXISTS {Role}
-                    (
-                        timestamp TEXT NOT NULL,
-                        sr INT NOT NULL CHECK (sr >= 0 AND sr <= 6000),
-                        map TEXT NOT NULL CHECK
-                            (
-                                {string.Join(" OR ", MapsHelper.Valid.Select(validMap => $"map = \"{validMap}\""))}
-                            ),
-                        comment TEXT DEFAULT NULL
-                    )
-                ";
-            await command.ExecuteNonQueryAsync();
-
-            if (MapsHelper.Aliases.ContainsKey(Map))
-            {
-                Map = MapsHelper.Aliases[Map];
-            }
-
-            command.CommandText = $"INSERT INTO {Role} (timestamp, sr, map, comment) VALUES (datetime(), $sr, $map, $comment)";
-            command.Parameters.AddWithValue("$sr", SR);
-            command.Parameters.AddWithValue("$map", Map);
-            command.Parameters.AddWithValue("$comment", Comment);
-            await command.ExecuteNonQueryAsync();
+            VerifyRole(Role);
+            VerifySR(SR);
+            VerifyMap(Map);
+            await matchHistoryContext.Matches.AddAsync(this); // MatchOption implicitly converts to Match
 
             Console.WriteLine("Successfully committed match data.");
         }
+
+        public static implicit operator Match(MatchOption matchOption) => new Match
+        {
+            Timestamp = DateTime.Now,
+            Role = matchOption.Role,
+            SR = matchOption.SR,
+            Map = matchOption.Map,
+            Comment = matchOption.Comment
+        };
     }
 }

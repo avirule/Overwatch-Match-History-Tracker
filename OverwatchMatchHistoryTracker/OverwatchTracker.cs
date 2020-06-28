@@ -29,7 +29,9 @@ namespace OverwatchMatchHistoryTracker
 
                 if (parsed is CommandOption commandOption)
                 {
-                    await commandOption.Process();
+                    MatchHistoryContext matchHistoryContext = await MatchHistoryContext.GetMatchHistoryContext(commandOption.Name);
+                    await commandOption.Process(matchHistoryContext);
+                    await matchHistoryContext.SaveChangesAsync();
                     return;
                 }
 

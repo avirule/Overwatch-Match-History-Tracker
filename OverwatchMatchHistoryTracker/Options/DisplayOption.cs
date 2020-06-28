@@ -6,8 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Data.Sqlite;
-using OverwatchMatchHistoryTracker.Helpers;
 
 #endregion
 
@@ -28,29 +26,21 @@ namespace OverwatchMatchHistoryTracker.Options
             }),
         };
 
-        public static void Display(string timestamp, string sr, string change, string map, string comment)
+        public static void Display(string timestamp, string sr, string change, string map, string? comment)
         {
             Console.WriteLine(_DISPLAY_FORMAT,
                 timestamp.PadLeft(10 + (timestamp.Length / 2)).PadRight(19),
                 sr.PadLeft(2 + (sr.Length / 2)).PadRight(4),
                 change.PadLeft(3 + (change.Length / 2)).PadRight(6),
                 map.PadLeft(13 + (map.Length / 2)).PadRight(25),
-                comment);
+                comment ?? string.Empty);
         }
 
-        private string _Name;
         private string _Role;
         private string _Outcome;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
-
-        [Value(0, MetaName = nameof(Name), Required = true, HelpText = "Name of player to display data from.")]
-        public string Name
-        {
-            get => _Name;
-            set => _Name = value.ToLowerInvariant();
-        }
 
         [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for which to display data from.")]
         public string Role
@@ -67,31 +57,15 @@ namespace OverwatchMatchHistoryTracker.Options
             set => _Outcome = value.ToLowerInvariant();
         }
 
-        public DisplayOption() => _Name = _Role = _Outcome = string.Empty;
+        public DisplayOption() => _Role = _Outcome = string.Empty;
 
-        public override async ValueTask Process()
+        public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
         {
-            if (!RolesHelper.Valid.Contains(Role))
-            {
-                throw new InvalidOperationException
-                (
-                    $"Invalid role provided: '{Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
-                );
-            }
+            VerifyRole(Role);
 
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
-            await MatchHistoryProvider.VerifyRoleTableExists(command, Role);
-            command.CommandText = $"SELECT * FROM {Role} ORDER BY datetime(timestamp)";
+            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches();
 
-            List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
-            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
-                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)));
-            }
-
-            if (historicData.Count == 0)
+            if (!await matches.AnyAsync())
             {
                 Console.WriteLine("No historic match data.");
             }
@@ -102,10 +76,10 @@ namespace OverwatchMatchHistoryTracker.Options
                 Console.WriteLine($" {new string('-', 73)}"); // header-body separator
 
                 // body (values)
-                int lastSR = historicData[0].SR;
-                foreach ((string timestamp, int sr, string map, string comment) in historicData)
+                int lastSR = (await matches.FirstAsync()).SR;
+                await foreach (Match match in matches)
                 {
-                    int change = sr - lastSR;
+                    int change = match.SR - lastSR;
 
                     switch (Outcome)
                     {
@@ -114,8 +88,8 @@ namespace OverwatchMatchHistoryTracker.Options
                         case "draw" when change == 0:
                         case "overall":
                             string changeString = change > 0 ? $"+{change}" : change.ToString(); // add positive-sign to wins
-                            Display(timestamp, sr.ToString(), changeString, map, comment);
-                            lastSR = sr;
+                            Display(match.Timestamp.ToString("yyyy-mm-dd hh:mm:ss"), match.SR.ToString(), changeString, match.Map, match.Comment);
+                            lastSR = match.SR;
                             break;
                     }
                 }

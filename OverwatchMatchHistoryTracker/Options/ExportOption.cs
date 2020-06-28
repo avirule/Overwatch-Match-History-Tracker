@@ -7,8 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CommandLine;
-using Microsoft.Data.Sqlite;
-using OverwatchMatchHistoryTracker.Helpers;
 
 #endregion
 
@@ -17,54 +15,19 @@ namespace OverwatchMatchHistoryTracker.Options
     [Verb("export", HelpText = "Exports a match history database to another format.")]
     public class ExportOption : CommandOption
     {
-        private string _Name;
-        private string _Role;
-
-        [Value(0, MetaName = nameof(Name), Required = true, HelpText = "Name of player to use data from.")]
-        public string Name
+        public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
         {
-            get => _Name;
-            set => _Name = value.ToLowerInvariant();
-        }
+            VerifyRole(Role);
 
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for which to use data from.")]
-        public string Role
-        {
-            get => _Role;
-            set => _Role = value.ToLowerInvariant();
-        }
+            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches();
 
-        public ExportOption() => _Name = _Role = string.Empty;
-
-        public override async ValueTask Process()
-        {
-            if (!RolesHelper.Valid.Contains(Role))
-            {
-                throw new InvalidOperationException
-                (
-                    $"Invalid role provided: '{Role}' (valid roles are {string.Join(", ", RolesHelper.Valid.Select(role => $"'{role}'"))})."
-                );
-            }
-
-            SqliteCommand command = await MatchHistoryProvider.GetDatabaseCommand(Name);
-            await MatchHistoryProvider.VerifyRoleTableExists(command, Role);
-            command.CommandText = $"SELECT * FROM {Role} ORDER BY datetime(timestamp)";
-
-            List<(string Timestamp, int SR, string Map, string Comment)> historicData = new List<(string, int, string, string)>();
-            await using SqliteDataReader reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                historicData.Add((reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
-                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)));
-            }
-
-            if (historicData.Count == 0)
+            if (!await matches.AnyAsync())
             {
                 Console.WriteLine("No historic match data.");
             }
             else
             {
-                using IXLWorkbook workbook = ConstructSpreadsheet(historicData);
+                using IXLWorkbook workbook = ConstructSpreadsheet(await matches.ToListAsync());
 
                 string filePath = Path.GetFullPath($"{Name}_{Role}.xlsx");
                 workbook.SaveAs(filePath);
@@ -72,10 +35,10 @@ namespace OverwatchMatchHistoryTracker.Options
             }
         }
 
-        private static IXLWorkbook ConstructSpreadsheet(IReadOnlyList<(string Timestamp, int SR, string Map, string Comment)> historicData)
+        private static IXLWorkbook ConstructSpreadsheet(IReadOnlyList<Match> matches)
         {
             const int row_index_offset = 3;
-            int lastRow = (historicData.Count + row_index_offset) - 1;
+            int lastRow = (matches.Count + row_index_offset) - 1;
 
             IXLWorkbook workbook = new XLWorkbook();
             IXLWorksheet worksheet = workbook.Worksheets.Add("Support");
@@ -94,14 +57,14 @@ namespace OverwatchMatchHistoryTracker.Options
             worksheet.Row(2).Cells().Style.Border.BottomBorder = XLBorderStyleValues.Thin;
 
             // data
-            for (int index = 0; index < historicData.Count; index++)
+            for (int index = 0; index < matches.Count; index++)
             {
-                (string timestamp, int sr, string map, string comment) = historicData[index];
+                Match match = matches[index];
 
-                worksheet.Cell($"B{index + row_index_offset}").Value = timestamp;
-                worksheet.Cell($"C{index + row_index_offset}").Value = sr;
+                worksheet.Cell($"B{index + row_index_offset}").Value = match.Timestamp.ToString("yyyy-mm-dd hh:mm:ss");
+                worksheet.Cell($"C{index + row_index_offset}").Value = match.SR;
 
-                int change = index == (historicData.Count - 1) ? 0 : historicData[index + 1].SR - sr;
+                int change = index == (matches.Count - 1) ? 0 : matches[index + 1].SR - match.SR;
                 string changeString = change > 0 ? $"+{change}" : change.ToString();
                 worksheet.Cell($"D{index + row_index_offset}").Value = changeString;
                 worksheet.Cell($"D{index + row_index_offset}").Style.Fill.BackgroundColor =
@@ -111,8 +74,8 @@ namespace OverwatchMatchHistoryTracker.Options
                             ? XLColor.FerrariRed
                             : XLColor.LightGray;
 
-                worksheet.Cell($"E{index + row_index_offset}").Value = map;
-                worksheet.Cell($"F{index + row_index_offset}").Value = comment;
+                worksheet.Cell($"E{index + row_index_offset}").Value = match.Map;
+                worksheet.Cell($"F{index + row_index_offset}").Value = match.Comment ?? string.Empty;
             }
 
             // most sizing and styling happens after filling sheet with data to ensure
