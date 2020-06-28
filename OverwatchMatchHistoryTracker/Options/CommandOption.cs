@@ -29,7 +29,9 @@ namespace OverwatchMatchHistoryTracker.Options
             set => _Role = value.ToLowerInvariant();
         }
 
-        public CommandOption() => _Name = _Role = string.Empty;
+        public string? CompleteText { get; protected set; }
+
+        public CommandOption() => _Name = _Role = CompleteText = string.Empty;
 
         public abstract ValueTask Process(MatchHistoryContext matchHistoryContext);
 

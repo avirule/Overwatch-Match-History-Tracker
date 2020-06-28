@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using OverwatchMatchHistoryTracker.Helpers;
 
 #endregion
 
@@ -44,6 +45,13 @@ namespace OverwatchMatchHistoryTracker
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
             optionsBuilder.UseSqlite($"Data Source=\"{Environment.CurrentDirectory}/{Name}.sqlite\"");
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Match>().HasCheckConstraint(nameof(Match.SR), $"({nameof(Match.SR)} >= 0 AND {nameof(Match.SR)} <= 6000)");
+            modelBuilder.Entity<Match>().HasCheckConstraint(nameof(Match.Map),
+                $@"({string.Join(" OR ", MapsHelper.Valid.Select(validMap => $"{nameof(Match.Map)} = \"{validMap}\""))})");
+        }
 
         public IAsyncEnumerable<Match> GetOrderedMatches() => Matches.ToAsyncEnumerable().OrderBy(match => match.Timestamp);
     }

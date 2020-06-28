@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CommandLine;
+using Microsoft.EntityFrameworkCore;
 using OverwatchMatchHistoryTracker.Options;
 
 #endregion
@@ -32,10 +33,20 @@ namespace OverwatchMatchHistoryTracker
                     MatchHistoryContext matchHistoryContext = await MatchHistoryContext.GetMatchHistoryContext(commandOption.Name);
                     await commandOption.Process(matchHistoryContext);
                     await matchHistoryContext.SaveChangesAsync();
+
+                    if (!string.IsNullOrWhiteSpace(commandOption.CompleteText))
+                    {
+                        Console.WriteLine(commandOption.CompleteText);
+                    }
+
                     return;
                 }
 
                 throw new InvalidOperationException("Did not recognize given arguments.");
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"{ex.InnerException?.Message ?? "No inner exception."} Operation not completed.");
             }
             catch (Exception ex)
             {

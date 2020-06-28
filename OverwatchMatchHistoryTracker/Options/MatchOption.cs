@@ -64,7 +64,8 @@ namespace OverwatchMatchHistoryTracker.Options
 
         public MatchOption()
         {
-            Map = _Comment = string.Empty;
+            CompleteText = "Successfully committed match data.";
+            _Map = _Comment = string.Empty;
             _SR = -1;
         }
 
@@ -74,8 +75,6 @@ namespace OverwatchMatchHistoryTracker.Options
             VerifySR(SR);
             VerifyMap(Map);
             await matchHistoryContext.Matches.AddAsync(this); // MatchOption implicitly converts to Match
-
-            Console.WriteLine("Successfully committed match data.");
         }
 
         public static implicit operator Match(MatchOption matchOption) => new Match
