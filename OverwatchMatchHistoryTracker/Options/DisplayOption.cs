@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 #endregion
 
@@ -15,6 +16,14 @@ namespace OverwatchMatchHistoryTracker.Options
     public class DisplayOption : CommandOption
     {
         private const string _DISPLAY_FORMAT = " {0} | {1} | {2} | {3} | {4} ";
+
+        private static readonly HashSet<string> _ValidOutcomes = new HashSet<string>
+        {
+            "win",
+            "loss",
+            "draw",
+            "overall"
+        };
 
         private static readonly List<Example> _Examples = new List<Example>
         {
@@ -31,8 +40,8 @@ namespace OverwatchMatchHistoryTracker.Options
             Console.WriteLine(_DISPLAY_FORMAT,
                 timestamp.PadLeft(10 + (timestamp.Length / 2)).PadRight(19),
                 sr.PadLeft(2 + (sr.Length / 2)).PadRight(4),
-                change.PadLeft(3 + (change.Length / 2)).PadRight(6),
                 map.PadLeft(13 + (map.Length / 2)).PadRight(25),
+                change.PadLeft(3 + (change.Length / 2)).PadRight(6),
                 comment ?? string.Empty);
         }
 
@@ -46,15 +55,23 @@ namespace OverwatchMatchHistoryTracker.Options
         public string Outcome
         {
             get => _Outcome;
-            set => _Outcome = value.ToLowerInvariant();
+            set
+            {
+                string outcome = value.ToLowerInvariant();
+
+                if (!_ValidOutcomes.Contains(outcome))
+                {
+                    throw new InvalidOperationException($"Given outcome must be: {string.Join(", ", _ValidOutcomes)}");
+                }
+
+                _Outcome = outcome;
+            }
         }
 
         public DisplayOption() => _Outcome = string.Empty;
 
         public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
         {
-            VerifyRole(Role);
-
             IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches().Where(match => match.Role.Equals(Role));
 
             if (!await matches.AnyAsync())
@@ -68,22 +85,31 @@ namespace OverwatchMatchHistoryTracker.Options
                 Console.WriteLine($" {new string('-', 73)}"); // header-body separator
 
                 // body (values)
-                int lastSR = (await matches.FirstAsync()).SR;
+                int lastSR = -1;
                 await foreach (Match match in matches)
                 {
-                    int change = match.SR - lastSR;
-
-                    switch (Outcome)
+                    if (!match.Entropic)
                     {
-                        case "win" when change > 0:
-                        case "loss" when change < 0:
-                        case "draw" when change == 0:
-                        case "overall":
-                            string changeString = change > 0 ? $"+{change}" : change.ToString(); // add positive-sign to wins
-                            Display(match.Timestamp.ToString("yyyy-mm-dd hh:mm:ss"), match.SR.ToString(), changeString, match.Map, match.Comment);
-                            lastSR = match.SR;
-                            break;
+                        lastSR = -1;
                     }
+
+                    if (lastSR > -1)
+                    {
+                        int srChange = lastSR - match.SR;
+
+                        switch (Outcome)
+                        {
+                            case "win" when srChange > 0:
+                            case "loss" when srChange < 0:
+                            case "draw" when srChange == 0:
+                            case "overall":
+                                string changeString = srChange > 0 ? $"+{srChange}" : srChange.ToString(); // add positive-sign to wins
+                                Display(match.Timestamp.ToString("yyyy-mm-dd hh:mm:ss"), match.SR.ToString(), changeString, match.Map.ToString(), match.Comment);
+                                break;
+                        }
+                    }
+
+                    lastSR = match.SR;
                 }
             }
         }

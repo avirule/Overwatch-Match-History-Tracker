@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CommandLine;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OverwatchMatchHistoryTracker.Options;
 
@@ -46,7 +47,20 @@ namespace OverwatchMatchHistoryTracker
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"{ex.InnerException?.Message ?? "No inner exception."} Operation not completed.");
+                if (ex.InnerException is SqliteException sqliteException)
+                {
+                    switch (sqliteException.SqliteErrorCode)
+                    {
+                        case 1:
+                            Console.WriteLine("A database format error has occurred. The referenced database may be from an older version, or corrupted.");
+                            break;
+
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"{ex.InnerException?.Message ?? "No inner exception."} Operation not completed.");
+                }
             }
             catch (Exception ex)
             {

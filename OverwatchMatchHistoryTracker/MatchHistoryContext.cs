@@ -50,7 +50,8 @@ namespace OverwatchMatchHistoryTracker
         {
             modelBuilder.Entity<Match>().HasCheckConstraint(nameof(Match.SR), $"({nameof(Match.SR)} >= 0 AND {nameof(Match.SR)} <= 6000)");
             modelBuilder.Entity<Match>().HasCheckConstraint(nameof(Match.Map),
-                $@"({string.Join(" OR ", MapsHelper.Valid.Select(validMap => $"{nameof(Match.Map)} = \"{validMap}\""))})");
+                $@"({string.Join(" OR ", Enum.GetNames(typeof(Map)).Select(map => $"{nameof(Match.Map)} = \"{map}\""))})");
+            modelBuilder.Entity<Match>().Property(match => match.Map).HasConversion(map => map.ToString(), map => Enum.Parse<Map>(map, true));
         }
 
         public IAsyncEnumerable<Match> GetOrderedMatches() => Matches.ToAsyncEnumerable().OrderBy(match => match.Timestamp);

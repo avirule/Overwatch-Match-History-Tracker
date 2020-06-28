@@ -1,6 +1,7 @@
 #region
 
 using System;
+using OverwatchMatchHistoryTracker.Helpers;
 
 #endregion
 
@@ -10,11 +11,16 @@ namespace OverwatchMatchHistoryTracker
     {
         public int MatchID { get; set; }
         public DateTime Timestamp { get; set; }
+        public bool Entropic { get; set; }
         public string Role { get; set; }
         public int SR { get; set; }
-        public string Map { get; set; }
+        public Map Map { get; set; }
         public string? Comment { get; set; }
 
-        public Match() => Role = Map = string.Empty;
+        public Match()
+        {
+            Entropic = true;
+            Role = string.Empty;
+        }
     }
 }

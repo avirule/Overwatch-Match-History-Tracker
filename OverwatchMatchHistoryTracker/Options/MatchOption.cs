@@ -2,9 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OverwatchMatchHistoryTracker.Helpers;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -30,12 +32,20 @@ namespace OverwatchMatchHistoryTracker.Options
             })
         };
 
-        private string _Map;
+        private bool _Entropic;
+        private Map _Map;
         private int _SR;
         private string? _Comment;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
+
+        [Option('e', "entropic", Required = false, HelpText = "Indicates match should not be collated for entropic data (averages, for instance). This can be used when there is a gap in committed match history.")]
+        public bool Entropic
+        {
+            get => _Entropic;
+            set => _Entropic = !value;
+        }
 
         [Value(2, MetaName = nameof(SR), Required = true, HelpText = "Final SR after match ended.")]
         public int SR
@@ -51,12 +61,11 @@ namespace OverwatchMatchHistoryTracker.Options
         [Value(3, MetaName = nameof(Map), Required = true, HelpText = "Name of map match took place on.")]
         public string Map
         {
-            get => _Map;
+            get => _Map.ToString();
             set
             {
-                string map = value.ToLowerInvariant();
-                map = MapsHelper.Aliases.ContainsKey(map) ? MapsHelper.Aliases[map] : map;
-                VerifyMap(map);
+                string mapString = value.ToLowerInvariant();
+                Map map = MapsHelper.Aliases.ContainsKey(mapString) ? MapsHelper.Aliases[mapString] : Enum.Parse<Map>(mapString, true);
                 _Map = map;
             }
         }
@@ -71,7 +80,7 @@ namespace OverwatchMatchHistoryTracker.Options
         public MatchOption()
         {
             CompleteText = "Successfully committed match data.";
-            _Map = _Comment = string.Empty;
+            _Comment = string.Empty;
             _SR = -1;
         }
 
@@ -80,9 +89,10 @@ namespace OverwatchMatchHistoryTracker.Options
         public static implicit operator Match(MatchOption matchOption) => new Match
         {
             Timestamp = DateTime.Now,
+            Entropic = matchOption.Entropic,
             Role = matchOption.Role,
             SR = matchOption.SR,
-            Map = matchOption.Map,
+            Map = matchOption._Map,
             Comment = matchOption.Comment
         };
     }

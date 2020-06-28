@@ -36,7 +36,17 @@ namespace OverwatchMatchHistoryTracker.Options
         public string Outcome
         {
             get => _Outcome;
-            set => _Outcome = value.ToLowerInvariant();
+            set
+            {
+                string outcome = value.ToLowerInvariant();
+
+                // if (!_ValidOutcomes.Contains(outcome))
+                // {
+                //     throw new InvalidOperationException($"Given outcome must be: {string.Join(", ", _ValidOutcomes)}");
+                // }
+
+                _Outcome = outcome;
+            }
         }
 
         public AverageOption() => _Outcome = string.Empty;
@@ -45,26 +55,30 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             VerifyRole(Role);
 
-            IAsyncEnumerable<int> srs = matchHistoryContext.Matches.ToAsyncEnumerable().Where(match => match.Role.Equals(Role))
-                .Select(match => match.SR);
+            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches().Where(match => match.Role.Equals(Role));
 
             double average = Change
-                ? await GetMatchSRChanges(srs, Outcome).DefaultIfEmpty().AverageAsync()
-                : await GetMatchSRs(srs, Outcome).DefaultIfEmpty().AverageAsync();
+                ? await GetMatchSRs(matches, Outcome, true).DefaultIfEmpty().AverageAsync()
+                : await GetMatchSRs(matches, Outcome, false).DefaultIfEmpty().AverageAsync();
 
             Console.WriteLine(average == 0d
                 ? $"No or not enough historic SR data for outcome '{Outcome}'."
                 : $"Average historic SR for outcome '{Outcome}': {average:0}");
         }
 
-        private static async IAsyncEnumerable<int> GetMatchSRs(IAsyncEnumerable<int> srs, string outcome)
+        private static async IAsyncEnumerable<int> GetMatchSRs(IAsyncEnumerable<Match> matches, string outcome, bool change)
         {
             int lastSR = -1;
-            await foreach (int sr in srs)
+            await foreach (Match match in matches)
             {
+                if (!match.Entropic)
+                {
+                    lastSR = -1;
+                }
+
                 if (lastSR > -1)
                 {
-                    int srChange = lastSR - sr;
+                    int srChange = match.SR - lastSR;
 
                     switch (outcome)
                     {
@@ -72,36 +86,12 @@ namespace OverwatchMatchHistoryTracker.Options
                         case "loss" when srChange < 0:
                         case "draw" when srChange == 0:
                         case "overall":
-                            yield return sr;
+                            yield return change ? Math.Abs(srChange) : match.SR;
                             break;
                     }
                 }
 
-                lastSR = sr;
-            }
-        }
-
-        private static async IAsyncEnumerable<int> GetMatchSRChanges(IAsyncEnumerable<int> srs, string outcome)
-        {
-            int lastSR = -1;
-            await foreach (int sr in srs)
-            {
-                if (lastSR > -1)
-                {
-                    int srChange = lastSR - sr;
-
-                    switch (outcome)
-                    {
-                        case "win" when srChange > 0:
-                        case "loss" when srChange < 0:
-                        case "draw" when srChange == 0:
-                        case "overall" when srChange != 0:
-                            yield return Math.Abs(srChange);
-                            break;
-                    }
-                }
-
-                lastSR = sr;
+                lastSR = match.SR;
             }
         }
     }

@@ -55,13 +55,5 @@ namespace OverwatchMatchHistoryTracker.Options
                 throw new ArgumentException("Given SR must be between 0 and 6000.");
             }
         }
-
-        protected static void VerifyMap(string map)
-        {
-            if (!MapsHelper.Valid.Contains(map))
-            {
-                throw new ArgumentException("Given map is not valid.");
-            }
-        }
     }
 }
