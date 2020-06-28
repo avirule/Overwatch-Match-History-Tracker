@@ -45,8 +45,8 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             VerifyRole(Role);
 
-            Stack<int> srs = new Stack<int>(await ((IAsyncEnumerable<Match>)matchHistoryContext.Matches).Where(match => match.Role.Equals(Role))
-                .Select(match => match.SR).ToListAsync());
+            IAsyncEnumerable<int> srs = matchHistoryContext.Matches.ToAsyncEnumerable().Where(match => match.Role.Equals(Role))
+                .Select(match => match.SR);
 
             double average = Change
                 ? await GetMatchSRChanges(srs, Outcome).DefaultIfEmpty().AverageAsync()
@@ -57,48 +57,51 @@ namespace OverwatchMatchHistoryTracker.Options
                 : $"Average historic SR for outcome '{Outcome}': {average:0}");
         }
 
-        private static async IAsyncEnumerable<int> GetMatchSRs(Stack<int> srs, string outcome)
+        private static async IAsyncEnumerable<int> GetMatchSRs(IAsyncEnumerable<int> srs, string outcome)
         {
-            while (srs.Count > 1)
+            int lastSR = -1;
+            await foreach (int sr in srs)
             {
-                int sr = srs.Pop();
-                int srChange = sr - srs.Peek();
-
-                switch (outcome)
+                if (lastSR > -1)
                 {
-                    case "win" when srChange > 0:
-                    case "loss" when srChange < 0:
-                    case "draw" when srChange == 0:
-                    case "overall":
-                        yield return sr;
-                        break;
+                    int srChange = lastSR - sr;
+
+                    switch (outcome)
+                    {
+                        case "win" when srChange > 0:
+                        case "loss" when srChange < 0:
+                        case "draw" when srChange == 0:
+                        case "overall":
+                            yield return sr;
+                            break;
+                    }
                 }
+
+                lastSR = sr;
             }
         }
 
-        private static async IAsyncEnumerable<int> GetMatchSRChanges(Stack<int> srs, string outcome)
+        private static async IAsyncEnumerable<int> GetMatchSRChanges(IAsyncEnumerable<int> srs, string outcome)
         {
-            while (srs.Count > 0)
+            int lastSR = -1;
+            await foreach (int sr in srs)
             {
-                int sr = srs.Pop();
-
-                if (!srs.TryPeek(out int peek))
+                if (lastSR > -1)
                 {
-                    // break out if we can't peek a value (count is 0)
-                    yield break;
+                    int srChange = lastSR - sr;
+
+                    switch (outcome)
+                    {
+                        case "win" when srChange > 0:
+                        case "loss" when srChange < 0:
+                        case "draw" when srChange == 0:
+                        case "overall" when srChange != 0:
+                            yield return Math.Abs(srChange);
+                            break;
+                    }
                 }
 
-                int srChange = sr - peek;
-
-                switch (outcome)
-                {
-                    case "win" when srChange > 0:
-                    case "loss" when srChange < 0:
-                    case "draw" when srChange == 0:
-                    case "overall" when srChange != 0:
-                        yield return Math.Abs(srChange);
-                        break;
-                }
+                lastSR = sr;
             }
         }
     }

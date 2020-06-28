@@ -14,5 +14,7 @@ namespace OverwatchMatchHistoryTracker
         public int SR { get; set; }
         public string Map { get; set; }
         public string? Comment { get; set; }
+
+        public Match() => Role = Map = string.Empty;
     }
 }

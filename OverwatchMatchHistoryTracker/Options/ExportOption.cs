@@ -19,7 +19,7 @@ namespace OverwatchMatchHistoryTracker.Options
         {
             VerifyRole(Role);
 
-            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches();
+            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches().Where(match => match.Role.Equals(Role));
 
             if (!await matches.AnyAsync())
             {
