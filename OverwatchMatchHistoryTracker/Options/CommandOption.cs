@@ -26,7 +26,12 @@ namespace OverwatchMatchHistoryTracker.Options
         public string Role
         {
             get => _Role;
-            set => _Role = value.ToLowerInvariant();
+            set
+            {
+                string role = value.ToLowerInvariant();
+                VerifyRole(role);
+                _Role = role;
+            }
         }
 
         public string? CompleteText { get; protected set; }

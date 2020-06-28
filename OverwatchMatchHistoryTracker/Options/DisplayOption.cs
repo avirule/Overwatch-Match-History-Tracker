@@ -36,18 +36,10 @@ namespace OverwatchMatchHistoryTracker.Options
                 comment ?? string.Empty);
         }
 
-        private string _Role;
         private string _Outcome;
 
         [Usage]
         public static IEnumerable<Example> Examples => _Examples;
-
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for which to display data from.")]
-        public string Role
-        {
-            get => _Role;
-            set => _Role = value.ToLowerInvariant();
-        }
 
         [Value(2, MetaName = nameof(Outcome), Required = false, HelpText = "Only display matches of given outcome (win / loss/ draw).",
             Default = "overall")]
@@ -57,13 +49,13 @@ namespace OverwatchMatchHistoryTracker.Options
             set => _Outcome = value.ToLowerInvariant();
         }
 
-        public DisplayOption() => _Role = _Outcome = string.Empty;
+        public DisplayOption() => _Outcome = string.Empty;
 
         public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
         {
             VerifyRole(Role);
 
-            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches();
+            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches().Where(match => match.Role.Equals(Role));
 
             if (!await matches.AnyAsync())
             {

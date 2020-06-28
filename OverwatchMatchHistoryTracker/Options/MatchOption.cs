@@ -41,7 +41,11 @@ namespace OverwatchMatchHistoryTracker.Options
         public int SR
         {
             get => _SR;
-            set => _SR = value;
+            set
+            {
+                VerifySR(value);
+                _SR = value;
+            }
         }
 
         [Value(3, MetaName = nameof(Map), Required = true, HelpText = "Name of map match took place on.")]
@@ -50,8 +54,10 @@ namespace OverwatchMatchHistoryTracker.Options
             get => _Map;
             set
             {
-                string lower = value.ToLowerInvariant();
-                _Map = MapsHelper.Aliases.ContainsKey(lower) ? MapsHelper.Aliases[lower] : lower;
+                string map = value.ToLowerInvariant();
+                map = MapsHelper.Aliases.ContainsKey(map) ? MapsHelper.Aliases[map] : map;
+                VerifyMap(map);
+                _Map = map;
             }
         }
 
@@ -69,13 +75,7 @@ namespace OverwatchMatchHistoryTracker.Options
             _SR = -1;
         }
 
-        public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
-        {
-            VerifyRole(Role);
-            VerifySR(SR);
-            VerifyMap(Map);
-            await matchHistoryContext.Matches.AddAsync(this); // MatchOption implicitly converts to Match
-        }
+        public override async ValueTask Process(MatchHistoryContext matchHistoryContext) => await matchHistoryContext.Matches.AddAsync(this);
 
         public static implicit operator Match(MatchOption matchOption) => new Match
         {
