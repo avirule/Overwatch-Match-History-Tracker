@@ -7,8 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OverwatchMatchHistoryTracker.AverageOption;
+using OverwatchMatchHistoryTracker.DisplayOption;
 using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
@@ -103,7 +103,7 @@ namespace OverwatchMatchHistoryTracker
                 }
             },
             {
-                typeof(DisplayOption.Display), new[]
+                typeof(Display), new[]
                 {
                     new[]
                     {

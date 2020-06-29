@@ -47,7 +47,7 @@ namespace OverwatchMatchHistoryTracker.MatchOption
 
         [Column(Order = 2)]
         [Option('e', "entropic", Required = false, Default = false /* equates to True in setter */, HelpText =
-                "Indicates match should not be collated for entropic data (averages, for instance). This can be used when there is a gap in committed match history.")]
+            "Indicates match should not be collated for entropic data (averages, for instance). This can be used when there is a gap in committed match history.")]
         public bool Entropic
         {
             get => _Entropic;
