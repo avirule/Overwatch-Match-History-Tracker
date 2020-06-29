@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using OverwatchMatchHistoryTracker.AverageOption;
+using OverwatchMatchHistoryTracker.DisplayOption;
+using OverwatchMatchHistoryTracker.ExportOption;
+using OverwatchMatchHistoryTracker.MatchOption;
 using OverwatchMatchHistoryTracker.Options;
 
 #endregion
@@ -16,10 +20,10 @@ namespace OverwatchMatchHistoryTracker
     {
         private static readonly Type[] _OptionTypes =
         {
-            typeof(MatchOption),
-            typeof(AverageOption),
-            typeof(DisplayOption),
-            typeof(ExportOption)
+            typeof(Match),
+            typeof(Average),
+            typeof(Display),
+            typeof(Export)
         };
 
         public static async ValueTask Process(IEnumerable<string> args)
@@ -27,23 +31,30 @@ namespace OverwatchMatchHistoryTracker
             try
             {
                 object? parsed = null;
-                Parser.Default.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
+                Parser parser = new Parser(settings =>
+                {
+                    settings.HelpWriter = Console.Error;
+                    settings.CaseSensitive = false;
+                    settings.CaseInsensitiveEnumValues = true;
+                });
+
+                parser.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
 
                 if (parsed is CommandOption commandOption)
                 {
-                    MatchHistoryContext matchHistoryContext = await MatchHistoryContext.GetMatchHistoryContext(commandOption.Name);
-                    await commandOption.Process(matchHistoryContext);
-                    await matchHistoryContext.SaveChangesAsync();
+                    MatchesContext matchesContext = await MatchesContext.GetMatchesContext(commandOption.Name);
+                    await commandOption.Process(matchesContext);
+                    await matchesContext.SaveChangesAsync();
 
-                    if (!string.IsNullOrWhiteSpace(commandOption.CompleteText))
+                    if (!string.IsNullOrWhiteSpace(commandOption.ProcessingFinishedMessage))
                     {
-                        Console.WriteLine(commandOption.CompleteText);
+                        Console.WriteLine(commandOption.ProcessingFinishedMessage);
                     }
-
-                    return;
                 }
-
-                throw new InvalidOperationException("Did not recognize given arguments.");
+                else
+                {
+                    throw new InvalidOperationException("Did not recognize given arguments.");
+                }
             }
             catch (DbUpdateException ex)
             {
@@ -52,9 +63,9 @@ namespace OverwatchMatchHistoryTracker
                     switch (sqliteException.SqliteErrorCode)
                     {
                         case 1:
-                            Console.WriteLine("A database format error has occurred. The referenced database may be from an older version, or corrupted.");
+                            Console.WriteLine(
+                                "A database format error has occurred. The referenced database may be from an older version, or corrupted.");
                             break;
-
                     }
                 }
                 else

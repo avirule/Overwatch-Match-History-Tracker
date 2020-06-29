@@ -7,19 +7,22 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CommandLine;
+using OverwatchMatchHistoryTracker.MatchOption;
+using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.Options
+namespace OverwatchMatchHistoryTracker.ExportOption
 {
-    [Verb("export", HelpText = "Exports a match history database to another format.")]
-    public class ExportOption : CommandOption
+    [Verb(nameof(Export), HelpText = "Exports a match history database to another format.")]
+    public class Export : CommandOption
     {
-        public override async ValueTask Process(MatchHistoryContext matchHistoryContext)
-        {
-            VerifyRole(Role);
+        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for player.")]
+        public Role Role { get; set; }
 
-            IAsyncEnumerable<Match> matches = matchHistoryContext.GetOrderedMatches().Where(match => match.Role.Equals(Role));
+        public override async ValueTask Process(MatchesContext matchesContext)
+        {
+            IAsyncEnumerable<Match> matches = matchesContext.GetMatchesByRoleAsync(Role);
 
             if (!await matches.AnyAsync())
             {

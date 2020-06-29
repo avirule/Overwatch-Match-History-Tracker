@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.Helpers
+namespace OverwatchMatchHistoryTracker
 {
     public enum Map
     {

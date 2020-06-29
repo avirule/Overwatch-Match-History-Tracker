@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OverwatchMatchHistoryTracker.AverageOption;
+using OverwatchMatchHistoryTracker.MatchOption;
 using OverwatchMatchHistoryTracker.Options;
 
 #endregion
@@ -14,6 +16,8 @@ namespace OverwatchMatchHistoryTracker
 {
     internal class Program
     {
+        private const string PLAYER_NAME = "aaad";
+
         private static async Task Main(string[] args)
         {
             // todo create `adjust` command
@@ -37,12 +41,12 @@ namespace OverwatchMatchHistoryTracker
         private static readonly Dictionary<Type, string[][]> _UnitTestArgs = new Dictionary<Type, string[][]>
         {
             {
-                typeof(MatchOption), new[]
+                typeof(Match), new[]
                 {
                     new[]
                     {
                         "match",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "2527",
                         "hanamura",
@@ -51,25 +55,25 @@ namespace OverwatchMatchHistoryTracker
                 }
             },
             {
-                typeof(AverageOption), new[]
+                typeof(Average), new[]
                 {
                     new[]
                     {
                         "average",
-                        "riki",
+                        PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "average",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "win"
                     },
                     new[]
                     {
                         "average",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "loss"
                     },
@@ -77,14 +81,14 @@ namespace OverwatchMatchHistoryTracker
                     {
                         "average",
                         "-c",
-                        "riki",
+                        PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "average",
                         "-c",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "win"
                     },
@@ -92,32 +96,32 @@ namespace OverwatchMatchHistoryTracker
                     {
                         "average",
                         "-c",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "loss"
                     }
                 }
             },
             {
-                typeof(DisplayOption), new[]
+                typeof(DisplayOption.Display), new[]
                 {
                     new[]
                     {
                         "display",
-                        "riki",
+                        PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "display",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "win"
                     },
                     new[]
                     {
                         "display",
-                        "riki",
+                        PLAYER_NAME,
                         "support",
                         "loss"
                     }
