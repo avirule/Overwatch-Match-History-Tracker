@@ -57,7 +57,7 @@ namespace OverwatchMatchHistoryTracker
             EntityTypeBuilder<Match> matchEntity = modelBuilder.Entity<Match>();
 
             // constraints
-            matchEntity.HasCheckConstraint(nameof(Match.SR), $"({nameof(Match.SR)} >= 0 AND {nameof(Match.SR)} <= 6000)");
+            matchEntity.HasCheckConstraint(nameof(Match.SR), $"({nameof(Match.SR)} >= 0 AND {nameof(Match.SR)} <= 5000)");
             matchEntity.HasCheckConstraint(nameof(Match.Map),
                 $@"({string.Join(" OR ", Enum.GetNames(typeof(Map)).Select(map => $"{nameof(Match.Map)} = \"{map}\""))})");
 
