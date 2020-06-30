@@ -16,7 +16,7 @@ namespace OverwatchMatchHistoryTracker
 {
     internal class Program
     {
-        private const string PLAYER_NAME = "aaad";
+        private const string _PLAYER_NAME = "aaad";
 
         private static async Task Main(string[] args)
         {
@@ -46,7 +46,7 @@ namespace OverwatchMatchHistoryTracker
                     new[]
                     {
                         "match",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "2527",
                         "hanamura",
@@ -60,20 +60,20 @@ namespace OverwatchMatchHistoryTracker
                     new[]
                     {
                         "average",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "average",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "win"
                     },
                     new[]
                     {
                         "average",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "loss"
                     },
@@ -81,14 +81,14 @@ namespace OverwatchMatchHistoryTracker
                     {
                         "average",
                         "-c",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "average",
                         "-c",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "win"
                     },
@@ -96,7 +96,7 @@ namespace OverwatchMatchHistoryTracker
                     {
                         "average",
                         "-c",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "loss"
                     }
@@ -108,20 +108,20 @@ namespace OverwatchMatchHistoryTracker
                     new[]
                     {
                         "display",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support"
                     },
                     new[]
                     {
                         "display",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "win"
                     },
                     new[]
                     {
                         "display",
-                        PLAYER_NAME,
+                        _PLAYER_NAME,
                         "support",
                         "loss"
                     }

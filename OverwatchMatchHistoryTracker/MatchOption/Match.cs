@@ -79,7 +79,7 @@ namespace OverwatchMatchHistoryTracker.MatchOption
 
         public override async ValueTask Process(MatchesContext matchesContext)
         {
-            int change = SR - ((await matchesContext.Matches.LastOrDefaultAsync())?.SR ?? SR);
+            int change = SR - ((await matchesContext.GetMatchesByRoleAsync(Role).LastOrDefaultAsync())?.SR ?? SR);
             string changeString = Display.FormatSRChange(change);
             Display.TableDisplay
             (
