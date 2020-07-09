@@ -2,13 +2,15 @@
 
 #region
 
+using System.Threading.Tasks;
+#if DEBUG && UNIT_TEST
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using OverwatchMatchHistoryTracker.AverageOption;
 using OverwatchMatchHistoryTracker.DisplayOption;
 using OverwatchMatchHistoryTracker.MatchOption;
+#endif
 
 #endregion
 

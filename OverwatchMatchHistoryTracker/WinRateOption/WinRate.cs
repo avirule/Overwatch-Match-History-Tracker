@@ -30,16 +30,16 @@ namespace OverwatchMatchHistoryTracker.WinRateOption
 
         public override async ValueTask Process(MatchesContext matchesContext)
         {
-            IAsyncEnumerable<(Match Match, int Change)> wins = matchesContext.GetMatchesByOutcomeAsync(Role, Outcome.Win);
-            IAsyncEnumerable<(Match match, int Change)> losses = matchesContext.GetMatchesByOutcomeAsync(Role, Outcome.Loss);
+            List<Match> total = await matchesContext.GetMatchesByRoleAsync(Role).ToListAsync();
+            IAsyncEnumerable<(Match Match, int Change)> wins = matchesContext.GetMatchesByOutcomeAsync(total.ToAsyncEnumerable(), Outcome.Win);
 
             double sumWins = await wins.CountAsync();
-            double sumLosses = await losses.CountAsync();
-            double sumTotal = sumWins + sumLosses;
+            double sumTotal = total.Count;
 
             double winRate = sumWins / sumTotal;
+            double percentageWinRate = winRate * 100d;
 
-            Console.WriteLine($"Winrate is: {winRate:0.00}");
+            Console.WriteLine($"Winrate for {Role} is: {percentageWinRate:0.00}%");
         }
     }
 }

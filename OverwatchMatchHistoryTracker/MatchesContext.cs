@@ -69,10 +69,13 @@ namespace OverwatchMatchHistoryTracker
         public IAsyncEnumerable<Match> GetMatchesAsync() => Matches.ToAsyncEnumerable().OrderBy(match => match.Timestamp);
         public IAsyncEnumerable<Match> GetMatchesByRoleAsync(Role role) => GetMatchesAsync().Where(match => match.Role == role);
 
-        public async IAsyncEnumerable<(Match, int)> GetMatchesByOutcomeAsync(Role role, Outcome outcome)
+        public IAsyncEnumerable<(Match, int)> GetMatchesByOutcomeAsync(Role role, Outcome outcome) =>
+            GetMatchesByOutcomeAsync(GetMatchesByRoleAsync(role), outcome);
+
+        public async IAsyncEnumerable<(Match, int)> GetMatchesByOutcomeAsync(IAsyncEnumerable<Match> matches, Outcome outcome)
         {
             int lastSR = -1;
-            await foreach (Match match in GetMatchesByRoleAsync(role))
+            await foreach (Match match in matches)
             {
                 if (!match.Entropic)
                 {
