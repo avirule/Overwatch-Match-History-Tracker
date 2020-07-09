@@ -13,26 +13,23 @@ using OverwatchMatchHistoryTracker.Options;
 
 namespace OverwatchMatchHistoryTracker.AverageOption
 {
-    [Verb(nameof(Average), HelpText = "Get average historic SR.")]
-    public class Average : CommandOption
+    [Verb(nameof(Average), HelpText = _HELP_TEXT)]
+    public class Average : CommandRoleOption
     {
-        private static readonly List<Example> _Examples = new List<Example>
+        private const string _HELP_TEXT = "Get average historic SR.";
+
+        [Usage]
+        public static IEnumerable<Example> Examples { get; } = new List<Example>
         {
-            new Example("Get average historic SR", new Average
+            new Example(_HELP_TEXT, new Average
             {
                 Name = "ShadowDragon",
                 Role = Role.DPS
             }),
         };
 
-        [Usage]
-        public static IEnumerable<Example> Examples => _Examples;
-
         [Option('c', "change", Required = false, HelpText = "Returns average SR change instead.")]
         public bool Change { get; set; }
-
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role of player.")]
-        public Role Role { get; set; }
 
         [Value(2, MetaName = nameof(Outcome), Required = false, Default = Outcome.Overall,
             HelpText = "Constrains the collation to only matches with given outcome (win / loss / draw / overall).")]

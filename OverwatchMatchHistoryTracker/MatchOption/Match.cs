@@ -18,12 +18,14 @@ using OverwatchMatchHistoryTracker.Options;
 
 namespace OverwatchMatchHistoryTracker.MatchOption
 {
-    [Verb(nameof(Match), HelpText = "Commits new match data.")]
+    [Verb(nameof(Match), HelpText = _HELP_TEXT)]
     public class Match : CommandOption
     {
-        private static readonly List<Example> _Examples = new List<Example>
+        private const string _HELP_TEXT = "Commit match data to match history database";
+
+        public static IEnumerable<Example> Examples { get; } = new List<Example>
         {
-            new Example("Commit match data to match history database", new Match
+            new Example(_HELP_TEXT, new Match
             {
                 Name = "ShadowDragon",
                 Role = Role.DPS,
@@ -33,11 +35,7 @@ namespace OverwatchMatchHistoryTracker.MatchOption
             })
         };
 
-        [Usage]
-        public static IEnumerable<Example> Examples => _Examples;
-
         private bool _Entropic;
-
 
         [Column(Order = 0)]
         public int MatchID { get; set; }
@@ -77,18 +75,21 @@ namespace OverwatchMatchHistoryTracker.MatchOption
             SR = -1;
         }
 
+        public Match(Match match) => (MatchID, Timestamp, Name, Role, SR, Map, Comment) =
+            (match.MatchID, match.Timestamp, match.Name, match.Role, match.SR, match.Map, match.Comment);
+
         public override async ValueTask Process(MatchesContext matchesContext)
         {
             int change = SR - ((await matchesContext.GetMatchesByRoleAsync(Role).LastOrDefaultAsync())?.SR ?? SR);
             string changeString = Display.FormatSRChange(change);
             Display.TableDisplay
             (
-                new Display.TableCell(Timestamp.ToString(Display.DATE_TIME_FORMAT), 19),
-                new Display.TableCell(Entropic ? "True" : "False", 5),
-                new Display.TableCell(SR.ToString(), 4),
-                new Display.TableCell(changeString, 6),
-                new Display.TableCell(Map.ToString(), 25),
-                new Display.TableCell(Comment ?? string.Empty, 0)
+                new TableCell(Timestamp.ToString(Display.DATE_TIME_FORMAT), 19),
+                new TableCell(Entropic ? "True" : "False", 5),
+                new TableCell(SR.ToString(), 4),
+                new TableCell(changeString, 6),
+                new TableCell(Map.ToString(), 25),
+                new TableCell(Comment ?? string.Empty, 0)
             );
             await matchesContext.Matches.AddAsync(this);
         }

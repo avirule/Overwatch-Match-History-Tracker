@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CommandLine;
+using CommandLine.Text;
 using OverwatchMatchHistoryTracker.MatchOption;
 using OverwatchMatchHistoryTracker.Options;
 
@@ -14,11 +15,19 @@ using OverwatchMatchHistoryTracker.Options;
 
 namespace OverwatchMatchHistoryTracker.ExportOption
 {
-    [Verb(nameof(Export), HelpText = "Exports a match history database to another format.")]
-    public class Export : CommandOption
+    [Verb(nameof(Export), HelpText = _HELP_TEXT)]
+    public class Export : CommandRoleOption
     {
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for player.")]
-        public Role Role { get; set; }
+        private const string _HELP_TEXT = "Exports a match history database to another format.";
+
+        public static IEnumerable<Example> Examples { get; } = new List<Example>
+        {
+            new Example(_HELP_TEXT, new Export
+            {
+                Name = "ShadowDragon",
+                Role = Role.DPS
+            })
+        };
 
         public override async ValueTask Process(MatchesContext matchesContext)
         {

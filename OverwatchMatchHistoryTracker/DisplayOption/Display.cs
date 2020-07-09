@@ -13,22 +13,17 @@ using OverwatchMatchHistoryTracker.Options;
 
 namespace OverwatchMatchHistoryTracker.DisplayOption
 {
-    [Verb(nameof(Display), HelpText = "Display tabulated match history data.")]
-    public class Display : CommandOption
+    [Verb(nameof(Display), HelpText = _HELP_TEXT)]
+    public class Display : CommandRoleOption
     {
-        public struct TableCell
-        {
-            public string Data { get; set; }
-            public int DisplayWidth { get; }
-
-            public TableCell(string data, int displayWidth) => (Data, DisplayWidth) = (data, displayWidth);
-        }
+        private const string _HELP_TEXT = "Display tabulated match history data.";
 
         public const string DATE_TIME_FORMAT = "yyyy-mm-dd hh:mm:ss";
 
-        private static readonly List<Example> _Examples = new List<Example>
+        [Usage]
+        public static IEnumerable<Example> Examples { get; } = new List<Example>
         {
-            new Example("Displays historic match data", new Display
+            new Example(_HELP_TEXT, new Display
             {
                 Name = "ShadowDragon",
                 Role = Role.DPS,
@@ -48,12 +43,6 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
             Console.WriteLine(tableRow);
             return tableRow.Length;
         }
-
-        [Usage]
-        public static IEnumerable<Example> Examples => _Examples;
-
-        [Value(1, MetaName = nameof(Role), Required = true, HelpText = "Role for player.")]
-        public Role Role { get; set; }
 
         [Value(2, MetaName = nameof(Outcome), Required = false, Default = Outcome.Overall,
             HelpText = "Only display matches of given outcome (win / loss/ draw).")]

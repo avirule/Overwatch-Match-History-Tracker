@@ -11,6 +11,7 @@ using OverwatchMatchHistoryTracker.DisplayOption;
 using OverwatchMatchHistoryTracker.ExportOption;
 using OverwatchMatchHistoryTracker.MatchOption;
 using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.WinRateOption;
 
 #endregion
 
@@ -23,7 +24,9 @@ namespace OverwatchMatchHistoryTracker
             typeof(Match),
             typeof(Average),
             typeof(Display),
-            typeof(Export)
+            typeof(Export),
+            typeof(WinRate)
+            // typeof(RepairID)
         };
 
         public static async ValueTask Process(IEnumerable<string> args)
