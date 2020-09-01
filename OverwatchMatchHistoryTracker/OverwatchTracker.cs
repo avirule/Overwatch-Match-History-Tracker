@@ -10,6 +10,7 @@ using OverwatchMatchHistoryTracker.AverageOption;
 using OverwatchMatchHistoryTracker.DisplayOption;
 using OverwatchMatchHistoryTracker.ExportOption;
 using OverwatchMatchHistoryTracker.MatchOption;
+using OverwatchMatchHistoryTracker.ModifyOption;
 using OverwatchMatchHistoryTracker.Options;
 using OverwatchMatchHistoryTracker.WinRateOption;
 
@@ -25,7 +26,8 @@ namespace OverwatchMatchHistoryTracker
             typeof(Average),
             typeof(Display),
             typeof(Export),
-            typeof(WinRate)
+            typeof(WinRate),
+            typeof(Modify)
             // typeof(RepairID)
         };
 
@@ -43,7 +45,7 @@ namespace OverwatchMatchHistoryTracker
 
                 parser.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
 
-                if (parsed is CommandOption commandOption)
+                if (parsed is CommandNameOption commandOption)
                 {
                     MatchesContext matchesContext = await MatchesContext.GetMatchesContext(commandOption.Name);
                     await commandOption.Process(matchesContext);

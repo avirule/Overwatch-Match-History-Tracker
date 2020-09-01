@@ -18,7 +18,7 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
     {
         private const string _HELP_TEXT = "Display tabulated match history data.";
 
-        public const string DATE_TIME_FORMAT = "yyyy-mm-dd hh:mm:ss";
+        public const string DATE_TIME_FORMAT = "d/M/yyyy HH:mm:ss";
 
         [Usage]
         public static IEnumerable<Example> Examples { get; } = new List<Example>
@@ -78,7 +78,7 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
 
                     TableDisplay
                     (
-                        new TableCell(match.MatchID.ToString(), 4),
+                        new TableCell(match.ID.ToString(), 4),
                         new TableCell(match.Timestamp.ToString(DATE_TIME_FORMAT), 19),
                         new TableCell(match.Entropic ? "True" : "False", 8),
                         new TableCell(match.SR.ToString(), 4),

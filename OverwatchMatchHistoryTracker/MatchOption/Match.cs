@@ -19,10 +19,21 @@ using OverwatchMatchHistoryTracker.Options;
 namespace OverwatchMatchHistoryTracker.MatchOption
 {
     [Verb(nameof(Match), HelpText = _HELP_TEXT)]
-    public class Match : CommandOption
+    public class Match : CommandNameOption
     {
+        public enum Header
+        {
+            Timestamp,
+            Entropic,
+            Role,
+            SR,
+            Map,
+            Comment
+        }
+
         private const string _HELP_TEXT = "Commit match data to match history database";
 
+        [Usage]
         public static IEnumerable<Example> Examples { get; } = new List<Example>
         {
             new Example(_HELP_TEXT, new Match
@@ -38,7 +49,7 @@ namespace OverwatchMatchHistoryTracker.MatchOption
         private bool _Entropic;
 
         [Column(Order = 0)]
-        public int MatchID { get; set; }
+        public int ID { get; set; }
 
         [Column(Order = 1)]
         public DateTime Timestamp { get; set; }
@@ -75,8 +86,8 @@ namespace OverwatchMatchHistoryTracker.MatchOption
             SR = -1;
         }
 
-        public Match(Match match) => (MatchID, Timestamp, Name, Role, SR, Map, Comment) =
-            (match.MatchID, match.Timestamp, match.Name, match.Role, match.SR, match.Map, match.Comment);
+        public Match(Match match) => (ID, Timestamp, Name, Role, SR, Map, Comment) =
+            (match.ID, match.Timestamp, match.Name, match.Role, match.SR, match.Map, match.Comment);
 
         public override async ValueTask Process(MatchesContext matchesContext)
         {

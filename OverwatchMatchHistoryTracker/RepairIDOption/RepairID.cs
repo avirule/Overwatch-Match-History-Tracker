@@ -13,7 +13,7 @@ using OverwatchMatchHistoryTracker.Options;
 namespace OverwatchMatchHistoryTracker.RepairIDOption
 {
     [Verb("repairid")]
-    public class RepairID : CommandOption
+    public class RepairID : CommandNameOption
     {
         public override async ValueTask Process(MatchesContext matchesContext)
         {
@@ -24,11 +24,11 @@ namespace OverwatchMatchHistoryTracker.RepairIDOption
             int id = 1;
             foreach (Match match in matches)
             {
-                if (match.MatchID != id)
+                if (match.ID != id)
                 {
                     Match newMatch = new Match(match)
                     {
-                        MatchID = id
+                        ID = id
                     };
 
                     matchesContext.Matches.Remove(match);

@@ -20,6 +20,7 @@ namespace OverwatchMatchHistoryTracker.ExportOption
     {
         private const string _HELP_TEXT = "Exports a match history database to another format.";
 
+        [Usage]
         public static IEnumerable<Example> Examples { get; } = new List<Example>
         {
             new Example(_HELP_TEXT, new Export
