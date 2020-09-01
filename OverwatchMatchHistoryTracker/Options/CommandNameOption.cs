@@ -1,7 +1,6 @@
 #region
 
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Threading.Tasks;
 using CommandLine;
 
 #endregion
