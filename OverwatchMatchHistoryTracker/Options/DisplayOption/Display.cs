@@ -6,12 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.DisplayOption
+namespace OverwatchMatchHistoryTracker.Options.DisplayOption
 {
     [Verb(nameof(Display), HelpText = _HELP_TEXT)]
     public class Display : CommandRoleOption

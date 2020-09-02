@@ -6,16 +6,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using OverwatchMatchHistoryTracker.DisplayOption;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.DisplayOption;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.ModifyOption
+namespace OverwatchMatchHistoryTracker.Options.ModifyOption
 {
     [Verb(nameof(Modify), HelpText = _HELP_TEXT)]
-    public class Modify : CommandNameOption
+    public class Modify : CommandOption
     {
         private const string _HELP_TEXT = "Modify an existing match history entry";
 

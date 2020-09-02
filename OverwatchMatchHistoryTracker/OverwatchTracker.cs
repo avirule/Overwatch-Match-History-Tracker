@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using OverwatchMatchHistoryTracker.AverageOption;
-using OverwatchMatchHistoryTracker.DisplayOption;
-using OverwatchMatchHistoryTracker.ExportOption;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.ModifyOption;
 using OverwatchMatchHistoryTracker.Options;
-using OverwatchMatchHistoryTracker.WinRateOption;
+using OverwatchMatchHistoryTracker.Options.AverageOption;
+using OverwatchMatchHistoryTracker.Options.DisplayOption;
+using OverwatchMatchHistoryTracker.Options.ExportOption;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
+using OverwatchMatchHistoryTracker.Options.ModifyOption;
+using OverwatchMatchHistoryTracker.Options.WinRateOption;
 
 #endregion
 
@@ -45,7 +45,7 @@ namespace OverwatchMatchHistoryTracker
 
                 parser.ParseArguments(args, _OptionTypes).WithParsed(obj => parsed = obj);
 
-                if (parsed is CommandNameOption commandOption)
+                if (parsed is CommandOption commandOption)
                 {
                     MatchesContext matchesContext = await MatchesContext.GetMatchesContext(commandOption.Name);
                     await commandOption.Process(matchesContext);

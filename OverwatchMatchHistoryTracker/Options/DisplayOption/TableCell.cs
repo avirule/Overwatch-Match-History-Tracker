@@ -1,4 +1,4 @@
-namespace OverwatchMatchHistoryTracker.DisplayOption
+namespace OverwatchMatchHistoryTracker.Options.DisplayOption
 {
     public struct TableCell
     {

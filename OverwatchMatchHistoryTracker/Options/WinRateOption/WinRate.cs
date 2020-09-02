@@ -6,12 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.WinRateOption
+namespace OverwatchMatchHistoryTracker.Options.WinRateOption
 {
     [Verb("winrate", HelpText = _HELP_TEXT)]
     public class WinRate : CommandRoleOption

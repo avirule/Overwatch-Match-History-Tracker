@@ -5,15 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.RepairIDOption
+namespace OverwatchMatchHistoryTracker.Options.RepairIDOption
 {
     [Verb("repairid")]
-    public class RepairID : CommandNameOption
+    public class RepairID : CommandOption
     {
         public override async ValueTask Process(MatchesContext matchesContext)
         {

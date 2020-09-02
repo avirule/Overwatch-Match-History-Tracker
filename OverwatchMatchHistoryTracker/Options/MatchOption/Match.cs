@@ -7,8 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
-using OverwatchMatchHistoryTracker.DisplayOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.DisplayOption;
 
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -16,10 +15,10 @@ using OverwatchMatchHistoryTracker.Options;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.MatchOption
+namespace OverwatchMatchHistoryTracker.Options.MatchOption
 {
     [Verb(nameof(Match), HelpText = _HELP_TEXT)]
-    public class Match : CommandNameOption
+    public class Match : CommandOption
     {
         public enum Header
         {

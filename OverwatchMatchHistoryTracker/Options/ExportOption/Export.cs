@@ -8,12 +8,11 @@ using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CommandLine;
 using CommandLine.Text;
-using OverwatchMatchHistoryTracker.MatchOption;
-using OverwatchMatchHistoryTracker.Options;
+using OverwatchMatchHistoryTracker.Options.MatchOption;
 
 #endregion
 
-namespace OverwatchMatchHistoryTracker.ExportOption
+namespace OverwatchMatchHistoryTracker.Options.ExportOption
 {
     [Verb(nameof(Export), HelpText = _HELP_TEXT)]
     public class Export : CommandRoleOption
