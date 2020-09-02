@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
+using OverwatchMatchHistoryTracker.DisplayOption;
 using OverwatchMatchHistoryTracker.MatchOption;
 using OverwatchMatchHistoryTracker.Options;
 
@@ -38,39 +39,42 @@ namespace OverwatchMatchHistoryTracker.ModifyOption
         public Match.Header MatchHeader { get; set; }
 
         [Value(3, MetaName = nameof(Value), HelpText = "New value for column entry.", Required = true)]
-        public object? Value { get; set; }
+        public string? Value { get; set; }
 
-
-        public override async ValueTask Process(MatchesContext matchesContext)
+        public override ValueTask Process(MatchesContext matchesContext)
         {
             Match match = matchesContext.Matches.FirstOrDefault(match => match.ID == MatchID)
                           ?? throw new ArgumentOutOfRangeException(nameof(MatchID), $"Given {nameof(MatchID)} does not exist in database.");
 
+            ProcessingFinishedMessage = $"[OLD] {Display.TableDisplay(match)}\r\n";
+
             switch (MatchHeader)
             {
-                case Match.Header.Timestamp when Value is DateTime value:
-                    match.Timestamp = value;
+                case Match.Header.Timestamp when DateTime.TryParse(Value, out DateTime result):
+                    match.Timestamp = result;
                     break;
-                case Match.Header.Entropic when Value is bool value:
-                    match.Entropic = value;
+                case Match.Header.Entropic when bool.TryParse(Value, out bool result):
+                    match.Entropic = result;
                     break;
-                case Match.Header.Role when Value is Role value:
-                    match.Role = value;
+                case Match.Header.SR when int.TryParse(Value, out int result):
+                    match.SR = result;
                     break;
-                case Match.Header.SR when Value is int value:
-                    match.SR = value;
+                case Match.Header.Role when Enum.TryParse(typeof(Role), Value, true, out object? result) && result is Role role:
+                    match.Role = role;
                     break;
-                case Match.Header.Map when Value is Map value:
-                    match.Map = value;
+                case Match.Header.Map when Enum.TryParse(typeof(Map), Value, true, out object? result) && result is Map map:
+                    match.Map = map;
                     break;
-                case Match.Header.Comment when Value is string value:
-                    match.Comment = value;
+                case Match.Header.Comment:
+                    match.Comment = Value;
                     break;
                 default:
                     throw new ArgumentException("Type mismatch between header and value.", nameof(Value));
             }
 
-            await matchesContext.SaveChangesAsync();
+            ProcessingFinishedMessage += $"[NEW] {Display.TableDisplay(match)}\r\n";
+
+            return default;
         }
     }
 }

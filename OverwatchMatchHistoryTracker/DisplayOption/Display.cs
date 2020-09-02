@@ -31,7 +31,18 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
             }),
         };
 
-        public static int TableDisplay(params TableCell[] data)
+        public static string TableDisplay(Match match) =>
+            TableDisplay(
+                new TableCell(match.ID.ToString(), 4),
+                new TableCell(match.Timestamp.ToString(DATE_TIME_FORMAT), 19),
+                new TableCell(match.Entropic ? "True" : "False", 8),
+                new TableCell(match.Role.ToString(), 10),
+                new TableCell(match.SR.ToString(), 4),
+                new TableCell(match.Map.ToString(), 25),
+                new TableCell(match.Comment ?? string.Empty, 0)
+            );
+
+        public static string TableDisplay(params TableCell[] data)
         {
             static string ComputeTableCell(TableCell tableCell)
             {
@@ -39,9 +50,7 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
                 return tableCell.Data.PadLeft((tableCell.DisplayWidth / 2) + (tableCell.Data.Length / 2)).PadRight(tableCell.DisplayWidth);
             }
 
-            string tableRow = string.Join(" | ", data.Select(ComputeTableCell));
-            Console.WriteLine(tableRow);
-            return tableRow.Length;
+            return string.Join(" | ", data.Select(ComputeTableCell));
         }
 
         [Value(2, MetaName = nameof(Outcome), Required = false, Default = Outcome.Overall,
@@ -60,7 +69,7 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
             {
                 Console.WriteLine(); // add blank new line
 
-                int rowLength = TableDisplay
+                string tableDisplay = TableDisplay
                 (
                     new TableCell("ID", 4),
                     new TableCell("Timestamp", 19),
@@ -70,14 +79,14 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
                     new TableCell("Map", 25),
                     new TableCell("Comment", 0)
                 );
-                Console.WriteLine($"{new string('-', rowLength)}"); // header-body separator
+                Console.WriteLine(tableDisplay);
+                Console.WriteLine($"{new string('-', tableDisplay.Length)}"); // header-body separator
 
                 await foreach ((Match match, int sr) in matchesContext.GetMatchesByOutcomeAsync(Role, Outcome))
                 {
                     string changeString = FormatSRChange(sr);
 
-                    TableDisplay
-                    (
+                    tableDisplay = TableDisplay(
                         new TableCell(match.ID.ToString(), 4),
                         new TableCell(match.Timestamp.ToString(DATE_TIME_FORMAT), 19),
                         new TableCell(match.Entropic ? "True" : "False", 8),
@@ -86,6 +95,8 @@ namespace OverwatchMatchHistoryTracker.DisplayOption
                         new TableCell(match.Map.ToString(), 25),
                         new TableCell(match.Comment ?? string.Empty, 0)
                     );
+
+                    Console.WriteLine(tableDisplay);
                 }
             }
         }
